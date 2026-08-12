@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+asc_oven_runs.db
+.DS_Store
+.venv/
+.zcode/
