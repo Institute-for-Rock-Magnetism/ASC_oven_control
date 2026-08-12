@@ -1,0 +1,486 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSRC FormatVersion="3" Type="LVIN" Encoding="mac_roman">
+  <RSID>
+    <!-- Generic block -->
+    <Section Index="0" Name="Watlow Read.vi" Int5="0x05370660" Format="bin" File="Watlow_Read_old_RSID.bin" />
+    </RSID>
+  <LVSR>
+    <!-- LabView Save Record -->
+    <Section Index="0" Int5="0x053867B0" Format="inline">
+      <Version Major="7" Minor="0" Bugfix="0" Stage="release" Build="0" />
+      <Library Protected="0" PasswordHash="" HashType="MD5" />
+      <Execution State="1" Priority="1" PrefExecSyst="-1" BadSignal="0" BadNode="0" BadSubVILink="0" BadSubVI="0" NotReservable="0" IsReentrant="0" CloseAfterCall="0" PooledReentrancy="0" LoadFP="0" HasNoBD="0" ShowFPOnLoad="0" DynamicDispatch="0" HasSetBP="0" RunOnOpen="0" ShowFPOnCall="0" BadCompile="0" IsSubroutine="0" DSRecord="0" CompilerBug="0" TypeDefVI="0" StrictTypeDefVI="0" BadDDO="0" CtlChanged="0" SaveParallel="0" LibIssuesNoRun="0" AllowAutoPrealloc="0" EvalWatermark="0" StdntWatermark="0" HasInsaneItems="0" PropTypesIssues="0" BrokenPolyVI="0" />
+      <Execution2 TaggedAndNotEdited="0" HideInstanceVICaption="0" SystemVI="0" VisibleVI="1" XDebugWindowVI="0" TemplateMask="0" SuppressXaction="0" AlwaysCallsParent="0" UndoRedoChangedNoTypes="0" InlinableDiagram="0" SourceOnly="0" InlineIfPossible="0" TransactionFailing="0" SSEOptiMask="0" StudentOnlyMask="0" EvalOnlyMask="0" AllowPolyTypeAdapt="0" ShouldInline="0" RecalcFPDSOs="0" MarkForPolyVI="0" VICanPassLVClassToDLL="0" UndoRedoInProgress="0" DrawInstanceIcon="0" ShowPolySelector="0" ClearIndMask="0" DefaultGrownView="0" DoNotClone="0" IsPrivateDataForUDClass="0" InstanceVI="0" DefaultErrorHandling="0" RemotePanel="0" SuppressInstanceHalo="0" />
+      <ButtonsHidden RunButton="0" ViBhBit1="0" ViBhBit2="0" ViBhBit3="0" ViBhBit4="0" FreeRunButton="0" ViBhBit6="0" AbortButton="0" ViBhBit8="0" ViBhBit9="0" ViBhBit10="0" ViBhBit11="0" ViBhBit12="0" ViBhBit13="0" ViBhBit14="0" ViBhBit15="0" />
+      <Instrument Type="Control" Signature="236d7373f62611dbb17b000393b315aa" InStBit0="0" InStBit1="0" InStBit2="0" InStBit3="0" InStBit4="1" InStBit5="0" InStBit6="0" InStBit7="0" InStBit8="0" DebugCapable="1" InStBit10="0" InStBit11="0" InStBit12="0" InStBit13="0" InStBit14="0" PrintAfterExec="0" InStBit16="0" InStBit17="0" InStBit18="0" InStBit19="0" InStBit20="0" InStBit21="0" InStBit22="0" InStBit23="1" InStBit24="0" InStBit25="0" InStBit26="0" InStBit27="0" InStBit28="0" InStBit29="0" InStBit30="1" InStBit31="0" />
+      <FrontPanel CtrlIndStyle="0" ShowScrollBar="3" ShowTitleBar="1" ToolBarVisible="1" ShowMenuBar="1" AutoCenter="0" SizeToScreen="0" NoRuntimePopUp="0" MarkReturnBtn="0" ViFpBit9="0" ScaleProportn="0" ViFpBit11="0" ViFpBit12="0" ViFpBit13="0" ViFpBit14="0" ViFpBit15="0" />
+      <Flags0C AutoHndlMenus="1" />
+      <Flags12 WndFloatUnk1="0" WndBit2="1" WndCanClose="1" WndCanResize="1" WndCanMinimize="1" WndTransparent="0" WndFloatUnk9="0" />
+      <Unknown Flags10="3" Field28="0" Field2C="0" Field30="0" AlignGridFP="12" AlignGridBD="16" Field4C="0" Field50Hash="1c17358af62611dbb17b000393b315aa" Field70="0" Field74="0" Field78Hash="" InlineStg="0" Field8C="0" />
+      </Section>
+    </LVSR>
+  <BDPW>
+    <!-- Block Diagram Password -->
+    <Section Index="0" Int5="0x0536BC80" Format="inline">
+      <Password Text="" SaltSource="None" SaltData="" />
+      </Section>
+    </BDPW>
+  <LIvi>
+    <!-- LinkObj Refs for VI -->
+    <Section Index="0" Int5="0x053324C0" Format="inline">
+      <LVIN Unk1="Watlow Read.vi" Unk2="">
+        <!--  VI To Poly Link Object Ref  -->
+        <POLY LinkSaveFlag="0" VILinkLibVersion="0" VILinkFieldA="0" VILinkField4="1" VILinkFieldB="00000000" VILinkFieldC="00000000" VILinkFieldD="0" TypedLinkFlags="0">
+          <LinkSaveQualName>
+            <String>VISA Configure Serial Port</String>
+            </LinkSaveQualName>
+          <LinkSavePathRef Ident="PTH0" TpVal="0">
+            <String>&lt;vilib&gt;</String>
+            <String>Instr</String>
+            <String>_visa.llb</String>
+            <String>VISA Configure Serial Port</String>
+            </LinkSavePathRef>
+          <TypeDesc TypeID="-1"><![CDATA[&#x00;&#x03;&#x00;Ú{'t
+]]></TypeDesc>
+          <TypedLinkOffsetList>
+            <Offset>0xFFFFFFFF</Offset>
+            </TypedLinkOffsetList>
+          </POLY>
+        <!--  VI To StdVI Link Object Ref  -->
+        <LVIN LinkSaveFlag="0" VILinkLibVersion="0" VILinkFieldA="0" VILinkField4="1" VILinkFieldB="00000000" VILinkFieldC="00000000" VILinkFieldD="0" TypedLinkFlags="0">
+          <LinkSaveQualName>
+            <String>VISA Configure Serial Port (Instr).vi</String>
+            </LinkSaveQualName>
+          <LinkSavePathRef Ident="PTH0" TpVal="0">
+            <String>&lt;vilib&gt;</String>
+            <String>Instr</String>
+            <String>_visa.llb</String>
+            <String>VISA Configure Serial Port (Instr).vi</String>
+            </LinkSavePathRef>
+          <TypeDesc TypeID="-1"><![CDATA[&#x00;Ô&#x03;&#x00;&#x10;&#x01;&#x08;
+&#x00;&#x00;&#x00;&#x00;&#x00;&#x00;&#x00;&#x0D;&#x00;&#x08;&#x00;&#x00;&#x00;&#x08;&#x00;&#x00;&#x00;&#x08;&#x00;&#x00;&#x00;
+&#x00;&#x00;&#x00;&#x08;&#x00;&#x00;&#x00;&#x0D;&#x0B;&#x00; @p&#x00;&#x0E;&#x05;Instr&#x12;VISA resource name&#x00;&#x00;&#x14;@&#x07;&#x0F;timeout (10sec)&#x00;(@&#x05;"termination char
+(0xA = '\n' = LF)&#x00;&#x00; @!&#x1B;Enable Termination
+Char (T)&#x00;*@p&#x00;&#x0E;&#x05;Instr&#x1C;duplicate VISA resource name&#x00;&#x00;&#x16;@&#x07;&#x10;baud rate (9600)&#x00;&#x00;&#x04;&#x00;&#x00;&#x00;&#x12;@&#x06;&#x0D;data bits (8)&#x00;&#x04;&#x00;&#x00;&#x00;0@&#x16;&#x00;&#x05;&#x04;None&#x03;Odd&#x04;Even&#x04;Mark&#x05;Space&#x11;&#x0F;parity (0:none)&#x00;&#x04;&#x00;&#x00;&#x00;@@P&#x00;&#x03;&#x00;&#x0C;@!&#x06;status&#x00;&#x00;
+@&#x03;&#x04;code&#x00;&#x00;&#x10;@0ˇˇˇˇ&#x06;source&#x00;&#x13;error in (no error)&#x00;&#x1A;@&#x06;&#x15;stop bits (10: 1 bit)&#x00;&#x1A;@&#x06;&#x15;flow control (0:none)&#x00;&#x04;&#x00;&#x00;&#x00;6@P&#x00;&#x03;&#x00;&#x0C;@!&#x06;status&#x00;&#x00;
+@&#x03;&#x04;code&#x00;&#x00;&#x10;@0ˇˇˇˇ&#x06;source&#x00;	error out]]></TypeDesc>
+          <TypedLinkOffsetList>
+            <Offset>0xFFFFFFFF</Offset>
+            </TypedLinkOffsetList>
+          </LVIN>
+        <!--  VI To StdVI Link Object Ref  -->
+        <LVIN LinkSaveFlag="0" VILinkLibVersion="0" VILinkFieldA="0" VILinkField4="1" VILinkFieldB="00000000" VILinkFieldC="00000000" VILinkFieldD="0" TypedLinkFlags="0">
+          <LinkSaveQualName>
+            <String>Calc CRC-sub.vi</String>
+            </LinkSaveQualName>
+          <LinkSavePathRef Ident="PTH0" TpVal="1">
+            <String />
+            <String>Calc CRC-sub.vi</String>
+            </LinkSavePathRef>
+          <TypeDesc TypeID="-1"><![CDATA[&#x00;9&#x03;&#x00;&#x08;&#x00;‡	&#x00;	&#x00;
+&#x00;
+&#x00;
+&#x00;
+&#x00;
+&#x00;
+&#x00;&#x00;&#x0C;@&#x05;&#x06;L byte&#x00;&#x00;&#x0C;@&#x05;&#x06;H byte&#x00;&#x00;&#x0C;@&#x06;&#x07;Command&#x00;&#x0C;@&#x06;&#x06;Adress&#x00;&#x00;&#x0C;@&#x06;&#x06;Data L&#x00;&#x00;&#x0C;@&#x06;&#x06;Data H&#x00;&#x00;
+@&#x06;&#x05;Reg L&#x00;
+@&#x06;&#x05;Reg H]]></TypeDesc>
+          <TypedLinkOffsetList>
+            <Offset>0xFFFFFFFF</Offset>
+            </TypedLinkOffsetList>
+          </LVIN>
+        </LVIN>
+      </Section>
+    </LIvi>
+  <CPTM>
+    <!-- Connector Pane Type Map -->
+    <Section Index="0" Int5="0x053764F0" Format="bin" File="Watlow_Read_old_CPTM.bin" />
+    </CPTM>
+  <DSTM>
+    <!-- Data Space Type Map -->
+    <Section Index="0" Int5="0x053899C0" Format="bin" File="Watlow_Read_old_DSTM.bin" />
+    </DSTM>
+  <DFDS>
+    <!-- Default Fill of Data Space -->
+    <Section Index="0" Int5="0x05357650" Format="bin" File="Watlow_Read_old_DFDS.bin" />
+    </DFDS>
+  <LIds>
+    <!-- LinkObj Refs for Data Space -->
+    <Section Index="0" Int5="0x053707E0" Format="inline">
+      <VIDS Unk1="Watlow Read.vi" Unk2="">
+        <!--  DS To DS Link Object Ref  -->
+        <VIDS LinkSaveFlag="0" VILinkLibVersion="0" VILinkFieldA="0" VILinkField4="1" VILinkFieldB="00000000" VILinkFieldC="00000000" VILinkFieldD="0" TypedLinkFlags="0">
+          <LinkSaveQualName>
+            <String>VISA Configure Serial Port (Instr).vi</String>
+            </LinkSaveQualName>
+          <LinkSavePathRef Ident="PTH0" TpVal="0" ZeroFill="True" />
+          <TypeDesc />
+          <TypedLinkOffsetList>
+            <Offset>0x0444</Offset>
+            </TypedLinkOffsetList>
+          <LinkOffsetList />
+          <DSOffsetList />
+          </VIDS>
+        <!--  DS To DS Link Object Ref  -->
+        <VIDS LinkSaveFlag="0" VILinkLibVersion="0" VILinkFieldA="0" VILinkField4="1" VILinkFieldB="00000000" VILinkFieldC="00000000" VILinkFieldD="0" TypedLinkFlags="0">
+          <LinkSaveQualName>
+            <String>Calc CRC-sub.vi</String>
+            </LinkSaveQualName>
+          <LinkSavePathRef Ident="PTH0" TpVal="0" ZeroFill="True" />
+          <TypeDesc />
+          <TypedLinkOffsetList>
+            <Offset>0x0448</Offset>
+            </TypedLinkOffsetList>
+          <LinkOffsetList />
+          <DSOffsetList />
+          </VIDS>
+        </VIDS>
+      </Section>
+    </LIds>
+  <VICD>
+    <!-- Virtual Instrument Compiled Data / VI Code -->
+    <Section Index="0" Int5="0x05370380" Format="inline">
+      <General CodeID="POWX" CodeFlags="0x22F9020" Version="0x0" CompilerOptimizationLevel="0" Verifier="code" EndVerifier="CODE" EndProp1="26573408" EndSignatureName="10966276" EndLocalLVRTCodeBlocks="14630920" EndProp5="0" />
+      <Code InitProcOffset="0x2BA4" NumberOfBasicBlocks="26573408" HostCodeEntryVI="0x39A00007" SignatureName="0x99A20077" Format="bin" File="Watlow_Read_old_VICD_code.bin" />
+      <Patches Format="bin" File="Watlow_Read_old_VICD_patches.bin" />
+      </Section>
+    </VICD>
+  <vers>
+    <!-- Version block -->
+    <Section Index="4" Int5="0x05353ED0" Format="inline">
+      <Version Major="7" Minor="0" Bugfix="0" Stage="beta" Build="71" Language="0" Info="7.0b71" Comment="Oldest compatible LabVIEW." />
+      </Section>
+    </vers>
+  <DLDR>
+    <!-- DataLog Data Record -->
+    <Section Index="0" Int5="0x053321D0" Prop1="14629388" Prop2="0" Prop3="00fe167000fe1688000000000000000000fe1690" Format="inline" />
+    </DLDR>
+  <FPTD>
+    <!-- Front Panel Type for DataLog -->
+    <Section Index="0" Int5="0x05386850" Format="bin" File="Watlow_Read_old_FPTD.bin" />
+    </FPTD>
+  <CPMp>
+    <!-- Connection Points Map -->
+    <Section Index="0" Int5="0x053891F0" Format="bin" File="Watlow_Read_old_CPMp.bin" />
+    </CPMp>
+  <VITS>
+    <!-- Virtual Instrument Tag Strings -->
+    <Section Index="0" Int5="0x053893D0" Format="inline">
+      <LVVariant Name="NI.LV.ALL.VILastSavedTarget" HasVarItem2="1" VarType2="0" Version="auto">
+        <DataType Index="0" Type="String" Prop1="0xFFFFFFFF" Format="inline" />
+        <DataFill>
+          <String>Mac</String>
+          </DataFill>
+        </LVVariant>
+      <LVVariant Name="NI.LV.ALL.goodSyntaxTargets" HasVarItem2="1" VarType2="0" Version="auto">
+        <DataType Index="0" Type="Array" Format="inline">
+          <Dimension Flags="0x00FF" FixedSize="0xFFFFFF" />
+          <TypeDesc Type="String" Nested="True" Prop1="0xFFFFFFFF" Format="inline" />
+          </DataType>
+        <DataFill>
+          <Array>
+            <dim>1</dim>
+            <String>Mac</String>
+            </Array>
+          </DataFill>
+        </LVVariant>
+      </Section>
+    </VITS>
+  <ICON>
+    <!-- Icon 32x32 1bpp -->
+    <Section Index="0" Int5="0x05387F00" Format="png" File="Watlow_Read_old_ICON.png" />
+    </ICON>
+  <icl8>
+    <!-- Icon Large 32x32 8bpp -->
+    <Section Index="0" Int5="0x05387210" Format="png" File="Watlow_Read_old_icl8.png" />
+    </icl8>
+  <DTHP>
+    <!-- Data Types for Heap -->
+    <Section Index="0" Int5="0x05389320" Format="bin" File="Watlow_Read_old_DTHP.bin" />
+    </DTHP>
+  <TRec>
+    <!-- Type Descriptor Record -->
+    <Section Index="2" Int5="0x05389AC0" Format="bin" File="Watlow_Read_old_TRec2.bin" />
+    <Section Index="3" Int5="0x05389AE0" Format="bin" File="Watlow_Read_old_TRec3.bin" />
+    <Section Index="4" Int5="0x05389B00" Format="bin" File="Watlow_Read_old_TRec4.bin" />
+    <Section Index="6" Int5="0x05386730" Format="bin" File="Watlow_Read_old_TRec6.bin" />
+    <Section Index="7" Int5="0x05376400" Format="bin" File="Watlow_Read_old_TRec7.bin" />
+    <Section Index="10" Int5="0x05376450" Format="bin" File="Watlow_Read_old_TRec10.bin" />
+    <Section Index="11" Int5="0x05389990" Format="bin" File="Watlow_Read_old_TRec11.bin" />
+    <Section Index="12" Int5="0x05376480" Format="bin" File="Watlow_Read_old_TRec12.bin" />
+    <Section Index="13" Int5="0x053764B0" Format="bin" File="Watlow_Read_old_TRec13.bin" />
+    <Section Index="15" Int5="0x05368E20" Format="bin" File="Watlow_Read_old_TRec15.bin" />
+    <Section Index="16" Int5="0x0535E4D0" Format="bin" File="Watlow_Read_old_TRec16.bin" />
+    <Section Index="18" Int5="0x0535E4E0" Format="bin" File="Watlow_Read_old_TRec18.bin" />
+    <Section Index="19" Int5="0x0534E830" Format="bin" File="Watlow_Read_old_TRec19.bin" />
+    <Section Index="21" Int5="0x05389810" Format="bin" File="Watlow_Read_old_TRec21.bin" />
+    <Section Index="22" Int5="0x05389840" Format="bin" File="Watlow_Read_old_TRec22.bin" />
+    <Section Index="24" Int5="0x05370680" Format="bin" File="Watlow_Read_old_TRec24.bin" />
+    <Section Index="25" Int5="0x053707D0" Format="bin" File="Watlow_Read_old_TRec25.bin" />
+    <Section Index="27" Int5="0x05381610" Format="bin" File="Watlow_Read_old_TRec27.bin" />
+    <Section Index="28" Int5="0x05381640" Format="bin" File="Watlow_Read_old_TRec28.bin" />
+    <Section Index="30" Int5="0x05386500" Format="bin" File="Watlow_Read_old_TRec30.bin" />
+    <Section Index="31" Int5="0x05386530" Format="bin" File="Watlow_Read_old_TRec31.bin" />
+    <Section Index="33" Int5="0x05386550" Format="bin" File="Watlow_Read_old_TRec33.bin" />
+    <Section Index="35" Int5="0x05385050" Format="bin" File="Watlow_Read_old_TRec35.bin" />
+    <Section Index="36" Int5="0x05385080" Format="bin" File="Watlow_Read_old_TRec36.bin" />
+    <Section Index="37" Int5="0x053851F0" Format="bin" File="Watlow_Read_old_TRec37.bin" />
+    <Section Index="38" Int5="0x05385280" Format="bin" File="Watlow_Read_old_TRec38.bin" />
+    <Section Index="39" Int5="0x05385290" Format="bin" File="Watlow_Read_old_TRec39.bin" />
+    <Section Index="40" Int5="0x053852C0" Format="bin" File="Watlow_Read_old_TRec40.bin" />
+    <Section Index="42" Int5="0x053852E0" Format="bin" File="Watlow_Read_old_TRec42.bin" />
+    <Section Index="43" Int5="0x05367FF0" Format="bin" File="Watlow_Read_old_TRec43.bin" />
+    <Section Index="44" Int5="0x05385EB0" Format="bin" File="Watlow_Read_old_TRec44.bin" />
+    <Section Index="45" Int5="0x05385EC0" Format="bin" File="Watlow_Read_old_TRec45.bin" />
+    <Section Index="46" Int5="0x05385EF0" Format="bin" File="Watlow_Read_old_TRec46.bin" />
+    <Section Index="47" Int5="0x05385FB0" Format="bin" File="Watlow_Read_old_TRec47.bin" />
+    <Section Index="49" Int5="0x05386180" Format="bin" File="Watlow_Read_old_TRec49.bin" />
+    <Section Index="50" Int5="0x05386190" Format="bin" File="Watlow_Read_old_TRec50.bin" />
+    <Section Index="51" Int5="0x053861C0" Format="bin" File="Watlow_Read_old_TRec51.bin" />
+    <Section Index="52" Int5="0x05386280" Format="bin" File="Watlow_Read_old_TRec52.bin" />
+    <Section Index="53" Int5="0x053862B0" Format="bin" File="Watlow_Read_old_TRec53.bin" />
+    <Section Index="54" Int5="0x053863C0" Format="bin" File="Watlow_Read_old_TRec54.bin" />
+    <Section Index="55" Int5="0x053863F0" Format="bin" File="Watlow_Read_old_TRec55.bin" />
+    <Section Index="57" Int5="0x05388260" Format="bin" File="Watlow_Read_old_TRec57.bin" />
+    <Section Index="58" Int5="0x05388270" Format="bin" File="Watlow_Read_old_TRec58.bin" />
+    <Section Index="60" Int5="0x053819B0" Format="bin" File="Watlow_Read_old_TRec60.bin" />
+    <Section Index="61" Int5="0x05381A40" Format="bin" File="Watlow_Read_old_TRec61.bin" />
+    <Section Index="63" Int5="0x05381A50" Format="bin" File="Watlow_Read_old_TRec63.bin" />
+    <Section Index="65" Int5="0x05376820" Format="bin" File="Watlow_Read_old_TRec65.bin" />
+    <Section Index="67" Int5="0x05376900" Format="bin" File="Watlow_Read_old_TRec67.bin" />
+    <Section Index="69" Int5="0x053769E0" Format="bin" File="Watlow_Read_old_TRec69.bin" />
+    <Section Index="72" Int5="0x05382F90" Format="bin" File="Watlow_Read_old_TRec72.bin" />
+    <Section Index="74" Int5="0x05382FA0" Format="bin" File="Watlow_Read_old_TRec74.bin" />
+    <Section Index="76" Int5="0x05383090" Format="bin" File="Watlow_Read_old_TRec76.bin" />
+    <Section Index="78" Int5="0x053831D0" Format="bin" File="Watlow_Read_old_TRec78.bin" />
+    <Section Index="79" Int5="0x05383200" Format="bin" File="Watlow_Read_old_TRec79.bin" />
+    <Section Index="80" Int5="0x05383370" Format="bin" File="Watlow_Read_old_TRec80.bin" />
+    <Section Index="82" Int5="0x05383380" Format="bin" File="Watlow_Read_old_TRec82.bin" />
+    <Section Index="84" Int5="0x053834D0" Format="bin" File="Watlow_Read_old_TRec84.bin" />
+    <Section Index="85" Int5="0x05383560" Format="bin" File="Watlow_Read_old_TRec85.bin" />
+    <Section Index="86" Int5="0x05383590" Format="bin" File="Watlow_Read_old_TRec86.bin" />
+    <Section Index="87" Int5="0x05382AC0" Format="bin" File="Watlow_Read_old_TRec87.bin" />
+    <Section Index="88" Int5="0x05382AF0" Format="bin" File="Watlow_Read_old_TRec88.bin" />
+    <Section Index="90" Int5="0x05382C60" Format="bin" File="Watlow_Read_old_TRec90.bin" />
+    <Section Index="91" Int5="0x05382C90" Format="bin" File="Watlow_Read_old_TRec91.bin" />
+    <Section Index="93" Int5="0x05389FA0" Format="bin" File="Watlow_Read_old_TRec93.bin" />
+    <Section Index="94" Int5="0x0538A100" Format="bin" File="Watlow_Read_old_TRec94.bin" />
+    <Section Index="95" Int5="0x0538A190" Format="bin" File="Watlow_Read_old_TRec95.bin" />
+    <Section Index="97" Int5="0x0538A1A0" Format="bin" File="Watlow_Read_old_TRec97.bin" />
+    <Section Index="99" Int5="0x0538A290" Format="bin" File="Watlow_Read_old_TRec99.bin" />
+    <Section Index="100" Int5="0x0538A3E0" Format="bin" File="Watlow_Read_old_TRec100.bin" />
+    <Section Index="102" Int5="0x0538A3F0" Format="bin" File="Watlow_Read_old_TRec102.bin" />
+    <Section Index="103" Int5="0x0538A550" Format="bin" File="Watlow_Read_old_TRec103.bin" />
+    <Section Index="105" Int5="0x0538A5D0" Format="bin" File="Watlow_Read_old_TRec105.bin" />
+    <Section Index="106" Int5="0x0538A600" Format="bin" File="Watlow_Read_old_TRec106.bin" />
+    <Section Index="107" Int5="0x0538A770" Format="bin" File="Watlow_Read_old_TRec107.bin" />
+    <Section Index="108" Int5="0x0538A800" Format="bin" File="Watlow_Read_old_TRec108.bin" />
+    <Section Index="110" Int5="0x0538A880" Format="bin" File="Watlow_Read_old_TRec110.bin" />
+    <Section Index="111" Int5="0x0538A8B0" Format="bin" File="Watlow_Read_old_TRec111.bin" />
+    <Section Index="113" Int5="0x0538A8C0" Format="bin" File="Watlow_Read_old_TRec113.bin" />
+    <Section Index="115" Int5="0x0538AA80" Format="bin" File="Watlow_Read_old_TRec115.bin" />
+    </TRec>
+  <CPST>
+    <!-- C. P. Strings -->
+    <Section Index="5" Int5="0x0531C1F0" Format="inline">
+      <String />
+      <String />
+      <String />
+      <String />
+      </Section>
+    <Section Index="48" Int5="0x05386000" Format="inline">
+      <String>1.0</String>
+      <String>1.5</String>
+      <String>2.0</String>
+      </Section>
+    <Section Index="56" Int5="0x05386400" Format="inline">
+      <String>None</String>
+      <String>XON/XOFF</String>
+      <String>RTS/CTS</String>
+      <String>DTR/DSR</String>
+      </Section>
+    <Section Index="59" Int5="0x05381920" Format="bin" File="Watlow_Read_old_CPST59.bin" />
+    </CPST>
+  <DSIM>
+    <!-- Dynamic Size Image -->
+    <Section Index="8" Int5="0x05376410" Format="bin" File="Watlow_Read_old_DSIM8.bin" />
+    <Section Index="9" Int5="0x05376420" Format="bin" File="Watlow_Read_old_DSIM9.bin" />
+    </DSIM>
+  <STRG>
+    <!-- String description / descriptions list -->
+    <Section Index="14" Int5="0x05368E70" Format="inline">
+      <String>%.0f</String>
+      </Section>
+    <Section Index="17" Int5="0x0534E730" Format="inline">
+      <String>%x</String>
+      </Section>
+    <Section Index="20" Int5="0x05389730" Format="inline">
+      <String>%x</String>
+      </Section>
+    <Section Index="23" Int5="0x053706D0" Format="inline">
+      <String>%.0f</String>
+      </Section>
+    <Section Index="26" Int5="0x05381600" Format="inline">
+      <String>%x</String>
+      </Section>
+    <Section Index="29" Int5="0x053864F0" Format="inline">
+      <String>%x</String>
+      </Section>
+    <Section Index="32" Int5="0x05386670" Format="inline">
+      <String>%.0f</String>
+      </Section>
+    <Section Index="62" Int5="0x05381AB0" Format="inline">
+      <String>%.0f</String>
+      </Section>
+    <Section Index="64" Int5="0x05376870" Format="inline">
+      <String>%.0f</String>
+      </Section>
+    <Section Index="66" Int5="0x05376950" Format="inline">
+      <String>%.0f</String>
+      </Section>
+    <Section Index="68" Int5="0x05376A30" Format="inline">
+      <String>%.0f</String>
+      </Section>
+    <Section Index="70" Int5="0x05376B10" Format="inline">
+      <String>%.0f</String>
+      </Section>
+    <Section Index="73" Int5="0x05383000" Format="inline">
+      <String>%.0f</String>
+      </Section>
+    <Section Index="75" Int5="0x053830E0" Format="inline">
+      <String>%.0f</String>
+      </Section>
+    <Section Index="77" Int5="0x053831C0" Format="inline">
+      <String>%.0f</String>
+      </Section>
+    <Section Index="83" Int5="0x053834C0" Format="inline">
+      <String>%.0f</String>
+      </Section>
+    <Section Index="89" Int5="0x05382C50" Format="inline">
+      <String>%x</String>
+      </Section>
+    <Section Index="92" Int5="0x0538A000" Format="inline">
+      <String>%.0f</String>
+      </Section>
+    <Section Index="96" Int5="0x0538A200" Format="inline">
+      <String>%x</String>
+      </Section>
+    <Section Index="98" Int5="0x0538A2E0" Format="inline">
+      <String>%x</String>
+      </Section>
+    <Section Index="101" Int5="0x0538A450" Format="inline">
+      <String>%x</String>
+      </Section>
+    <Section Index="104" Int5="0x0538A5C0" Format="inline">
+      <String>%x</String>
+      </Section>
+    <Section Index="109" Int5="0x0538A870" Format="inline">
+      <String>%x</String>
+      </Section>
+    <Section Index="112" Int5="0x0538A9F0" Format="inline">
+      <String>%.0f</String>
+      </Section>
+    <Section Index="114" Int5="0x0538AAD0" Format="inline">
+      <String>%.0f</String>
+      </Section>
+    </STRG>
+  <PICC>
+    <!-- Generic block -->
+    <Section Index="34" Int5="0x05384F10" Format="bin" File="Watlow_Read_old_PICC.bin" />
+    </PICC>
+  <LIfp>
+    <!-- LinkObj Refs for Front Panel -->
+    <Section Index="0" Int5="0x05384FB0" Format="inline">
+      <FPHP Unk1="Watlow Read.vi" Unk2="" />
+      </Section>
+    </LIfp>
+  <FPHP>
+    <!-- Front Panel Heap -->
+    <Section Index="0" Int5="0x05384FE0" Format="bin" File="Watlow_Read_old_FPHP.bin" />
+    </FPHP>
+  <OMId>
+    <!-- Generic block -->
+    <Section Index="41" Int5="0x05367E70" Format="bin" File="Watlow_Read_old_OMId41.bin" />
+    <Section Index="81" Int5="0x053833E0" Format="bin" File="Watlow_Read_old_OMId81.bin" />
+    </OMId>
+  <STR>
+    <!-- Short String / Input definition? -->
+    <Section Index="71" Int5="0x05376AC0" Format="bin" File="Watlow_Read_old_STR.bin" />
+    </STR>
+  <LIbd>
+    <!-- LinkObj Refs for Block diagram -->
+    <Section Index="0" Int5="0x0538AB60" Format="inline">
+      <BDHP Unk1="Watlow Read.vi" Unk2="">
+        <!--  VI To StdVI Link Object Ref  -->
+        <LVIN LinkSaveFlag="0" VILinkLibVersion="0" VILinkFieldA="0" VILinkField4="1" VILinkFieldB="00000000" VILinkFieldC="00000000" VILinkFieldD="0" TypedLinkFlags="0">
+          <LinkSaveQualName>
+            <String>VISA Configure Serial Port (Instr).vi</String>
+            </LinkSaveQualName>
+          <LinkSavePathRef Ident="PTH0" TpVal="0" ZeroFill="True" />
+          <TypeDesc />
+          <TypedLinkOffsetList>
+            <Offset>0x40D8</Offset>
+            </TypedLinkOffsetList>
+          </LVIN>
+        <!--  VI To Poly Link Object Ref  -->
+        <POLY LinkSaveFlag="0" VILinkLibVersion="0" VILinkFieldA="0" VILinkField4="1" VILinkFieldB="00000000" VILinkFieldC="00000000" VILinkFieldD="0" TypedLinkFlags="0">
+          <LinkSaveQualName>
+            <String>VISA Configure Serial Port</String>
+            </LinkSaveQualName>
+          <LinkSavePathRef Ident="PTH0" TpVal="0" ZeroFill="True" />
+          <TypeDesc />
+          <TypedLinkOffsetList>
+            <Offset>0x40D8</Offset>
+            </TypedLinkOffsetList>
+          </POLY>
+        <!--  VI To StdVI Link Object Ref  -->
+        <LVIN LinkSaveFlag="0" VILinkLibVersion="0" VILinkFieldA="0" VILinkField4="1" VILinkFieldB="00000000" VILinkFieldC="00000000" VILinkFieldD="0" TypedLinkFlags="0">
+          <LinkSaveQualName>
+            <String>Calc CRC-sub.vi</String>
+            </LinkSaveQualName>
+          <LinkSavePathRef Ident="PTH0" TpVal="0" ZeroFill="True" />
+          <TypeDesc />
+          <TypedLinkOffsetList>
+            <Offset>0x70C4</Offset>
+            </TypedLinkOffsetList>
+          </LVIN>
+        </BDHP>
+      </Section>
+    </LIbd>
+  <BDHP>
+    <!-- Block Diagram Heap -->
+    <Section Index="0" Int5="0x0538AB90" Format="bin" File="Watlow_Read_old_BDHP.bin" />
+    </BDHP>
+  <HIST>
+    <!-- Changes History -->
+    <Section Index="0" Int5="0x0538ACF0" Format="bin" File="Watlow_Read_old_HIST.bin" />
+    </HIST>
+  <FTAB>
+    <!-- Font Table -->
+    <Section Index="128" Int5="0x0538AE30" Prop1="0x10001" Prop3="3" Format="inline">
+      <Font Prop2="11" Prop3="1024" Prop4="0" Prop6="13" Prop7="231" Prop8="204">
+        <Name>Lucida Grande</Name>
+        </Font>
+      <Font Prop2="13" Prop3="1024" Prop4="0" Prop6="16" Prop7="272" Prop8="239">
+        <Name>Lucida Grande</Name>
+        </Font>
+      <Font Prop2="13" Prop3="1024" Prop4="0" Prop6="16" Prop7="272" Prop8="239">
+        <Name>Lucida Grande</Name>
+        </Font>
+      <Font Prop2="32768" Prop3="33792" Prop4="32768" Prop6="13" Prop7="231" Prop8="204">
+        <Name>0</Name>
+        </Font>
+      <Font Prop2="0" Prop3="0" Prop4="0" Prop6="0" Prop7="0" Prop8="0" />
+      <Font Prop2="0" Prop3="0" Prop4="0" Prop6="0" Prop7="0" Prop8="0" />
+      <Font Prop2="0" Prop3="0" Prop4="0" Prop6="0" Prop7="0" Prop8="0" />
+      <Font Prop2="0" Prop3="0" Prop4="0" Prop6="0" Prop7="0" Prop8="0" />
+      <Font Prop2="0" Prop3="0" Prop4="0" Prop6="0" Prop7="0" Prop8="0" />
+      <Font Prop2="0" Prop3="0" Prop4="0" Prop6="0" Prop7="0" Prop8="0" />
+      <Font Prop2="0" Prop3="0" Prop4="0" Prop6="0" Prop7="0" Prop8="0" />
+      <Font Prop2="14" Prop3="33792" Prop4="32768" Prop6="17" Prop7="296" Prop8="260">
+        <Name>0</Name>
+        </Font>
+      </Section>
+    </FTAB>
+  </RSRC>

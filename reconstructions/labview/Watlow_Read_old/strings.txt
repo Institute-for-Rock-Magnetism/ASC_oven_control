@@ -1,0 +1,257 @@
+LVINLBVW
+Watlow Read.vi
+VISA Configure Serial Port
+<vilib>
+Instr
+_visa.llb
+VISA Configure Serial Port
+LVIN%VISA Configure Serial Port (Instr).vi
+Instr
+VISA resource name
+timeout (10sec)
+"termination char
+(0xA = '\n' = LF)
+Enable Termination
+Char (T)
+Instr
+duplicate VISA resource name
+baud rate (9600)
+data bits (8)
+Space
+parity (0:none)
+status
+source
+error in (no error)
+stop bits (10: 1 bit)
+flow control (0:none)
+status
+source
+error outPTH0
+<vilib>
+Instr
+_visa.llb%VISA Configure Serial Port (Instr).vi
+Calc CRC-sub.vi
+L byte
+H byte
+Command
+Adress
+Data L
+Data H
+Reg L
+Reg HPTH0
+Calc CRC-sub.vi
+Number
+Adress
+status
+source
+error out
+Read buffer
+unsigned byte array
+Adress
+Number
+General Settings:Timeout Value
+Instr
+VISA resource name
+byte count (0)
+stop bits (10: 1 bit)
+baud rate (9600)
+data bits (8)
+flow control (0:none)
+Space
+parity (0:none)
+index
+index
+General Settings:Timeout Value
+Command
+Command
+status
+source
+error in (no error)
+read buffer
+Instr
+VISA resource name
+Adress
+H byte
+L byte
+Adress
+Command
+Adress
+Data L
+Data H
+Reg L
+Reg H
+ASRL2::INSTR
+Watlow Read.vi
+VIDS%VISA Configure Serial Port (Instr).vi
+Calc CRC-sub.vi
+&P$p#
+"T'|'@+
+   < P 
+7.0b71
+Oldest compatible LabVIEW.
+status
+source
+error out
+Read buffer
+unsigned byte array
+Adress
+Number
+NI.LV.ALL.VILastSavedTarget
+NI.LV.ALL.goodSyntaxTargets
+status
+source
+error out
+return count
+Instr
+duplicate VISA resource name
+status
+source
+error in (no error)
+write buffer ("")
+timeout (0)
+access mode
+duplicate session (F)
+flow control (0:none)
+Reg H
+Reg L
+Adress
+string
+status
+source
+Instr
+VISA resource name
+byte count (0)
+stop bits (10: 1 bit)
+Space
+parity (0:none)
+data bits (8)
+baud rate (9600)
+Enable Termination
+Char (T)
+"termination char
+(0xA = '\n' = LF)
+timeout (10sec)
+Instr
+VISA resource name
+timeout (10sec)
+"termination char
+(0xA = '\n' = LF)
+Enable Termination
+Char (T)
+Instr
+duplicate VISA resource name
+baud rate (9600)
+data bits (8)
+Space
+parity (0:none)
+status
+source
+error in (no error)
+stop bits (10: 1 bit)
+flow control (0:none)
+status
+source
+error out
+General Settings:Timeout Value
+Timeout
+read buffer
+Read buffer
+unsigned byte array
+Command
+Data H
+Data L
+Adress
+Command
+H byte
+L byte
+L byte
+H byte
+Command
+Adress
+Data L
+Data H
+Reg L
+Reg H
+Number
+index
+Read buffer
+error out
+status
+source
+unsigned byte array
+Adress
+Number
+064h- Temper
+12Ch- Set Point
+General Settings:Timeout Value
+VISA resource name
+Start Reg H
+Start Reg L
+Number of Reg H
+byte count (0)
+Number of Reg L
+stop bits (10: 1 bit)
+baud rate (9600)
+CRC - L
+CRC- H
+parity (0:none)
+data bits (8)
+flow control (0:none)
+Function Cod
+VISA Configure Serial Port
+General Settings:Timeout Value
+Command
+Calc CRC-sub.vi
+index
+Command
+index
+XON/XOFF
+RTS/CTS
+DTR/DSR
+Space
+parity (0:none)
+fffff3ff
+f3ff33f3
+3ff3f33f
+33f33333
+""")))UUUMMMBBB999
+?IDATx
+fffff3ff
+f3ff33f3
+3ff3f33f
+33f33333
+""")))UUUMMMBBB999
+AIDATx
+Watlow Read.vi
+9The <B>error in</B> cluster can accept error information wired from VIs previously called.  Use this information to decide if any functionality should be bypassed in the event of errors from other VIs.
+The pop-up option <B>Explain Error</B> (or Explain Warning) gives more information about the error displayed. 
+The <B>status</B> boolean is either TRUE (X) for an error, or FALSE (checkmark) for no error or a warning.
+The pop-up option <B>Explain Error</B> (or Explain Warning) gives more information about the error displayed.
+The <B>code</B> input identifies the error or warning.
+The pop-up option <B>Explain Error</B> (or Explain Warning) gives more information about the error displayed.
+The <B>source</B> string describes the origin of the error or warning.
+The pop-up option <B>Explain Error</B> (or Explain Warning) gives more information about the error displayed.
+Instr
+Instr
+Instr
+Watlow Read.vi
+LVIN%VISA Configure Serial Port (Instr).vi
+VISA Configure Serial Port
+Calc CRC-sub.vi
+Instr
+Instr
+Lucida Grande
+Lucida Grande
+Lucida Grande
+LVINLBVW
+lLVSR
+ DLDR
+4FPTD
+HCPMp
+\VITS
+pICON
+<STRG
+dPICC
+XLIfp
+lFPHP
+Watlow Read.vi

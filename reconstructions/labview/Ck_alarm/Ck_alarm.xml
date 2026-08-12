@@ -1,0 +1,833 @@
+<?xml version='1.0' encoding='utf-8'?>
+<RSRC FormatVersion="3" Type="LVIN" Encoding="mac_roman">
+  <LVSR>
+    <!-- LabView Save Record -->
+    <Section Index="0" Name="Ck_alarm.vi" Format="inline">
+      <Version Major="8" Minor="6" Bugfix="0" Stage="release" Build="1" />
+      <Library Protected="0" PasswordHash="d41d8cd98f00b204e9800998ecf8427e" HashType="MD5" />
+      <Execution State="1" Priority="1" PrefExecSyst="-1" BadSignal="0" BadNode="0" BadSubVILink="0" BadSubVI="0" NotReservable="0" IsReentrant="0" CloseAfterCall="0" PooledReentrancy="0" LoadFP="0" HasNoBD="0" ShowFPOnLoad="0" DynamicDispatch="0" HasSetBP="0" RunOnOpen="0" ShowFPOnCall="0" BadCompile="0" IsSubroutine="0" DSRecord="0" CompilerBug="0" TypeDefVI="0" StrictTypeDefVI="0" BadDDO="0" CtlChanged="0" SaveParallel="0" LibIssuesNoRun="0" AllowAutoPrealloc="0" EvalWatermark="0" StdntWatermark="0" HasInsaneItems="0" PropTypesIssues="0" BrokenPolyVI="0" />
+      <Execution2 TaggedAndNotEdited="0" HideInstanceVICaption="0" SystemVI="0" VisibleVI="0" XDebugWindowVI="0" TemplateMask="0" SuppressXaction="0" AlwaysCallsParent="0" UndoRedoChangedNoTypes="0" InlinableDiagram="0" SourceOnly="0" InlineIfPossible="0" TransactionFailing="0" SSEOptiMask="0" StudentOnlyMask="0" EvalOnlyMask="0" AllowPolyTypeAdapt="0" ShouldInline="0" RecalcFPDSOs="0" MarkForPolyVI="0" VICanPassLVClassToDLL="0" UndoRedoInProgress="0" DrawInstanceIcon="0" ShowPolySelector="0" ClearIndMask="0" DefaultGrownView="0" DoNotClone="0" IsPrivateDataForUDClass="0" InstanceVI="0" DefaultErrorHandling="1" RemotePanel="0" SuppressInstanceHalo="0" />
+      <ButtonsHidden RunButton="0" ViBhBit1="0" ViBhBit2="0" ViBhBit3="0" ViBhBit4="0" FreeRunButton="0" ViBhBit6="0" AbortButton="0" ViBhBit8="0" ViBhBit9="0" ViBhBit10="0" ViBhBit11="0" ViBhBit12="0" ViBhBit13="0" ViBhBit14="0" ViBhBit15="0" />
+      <Instrument Type="Control" Signature="fe86f09a5ffdba4b8f6d933255985ac1" InStBit0="0" InStBit1="0" InStBit2="0" InStBit3="0" InStBit4="1" InStBit5="0" InStBit6="0" InStBit7="0" InStBit8="0" DebugCapable="1" InStBit10="0" InStBit11="0" InStBit12="0" InStBit13="0" InStBit14="0" PrintAfterExec="0" InStBit16="0" InStBit17="0" InStBit18="0" InStBit19="0" InStBit20="0" InStBit21="0" InStBit22="0" InStBit23="1" InStBit24="0" InStBit25="0" InStBit26="0" InStBit27="0" InStBit28="0" InStBit29="0" InStBit30="1" InStBit31="0" />
+      <FrontPanel CtrlIndStyle="0" ShowScrollBar="3" ShowTitleBar="1" ToolBarVisible="1" ShowMenuBar="1" AutoCenter="0" SizeToScreen="0" NoRuntimePopUp="0" MarkReturnBtn="0" ViFpBit9="0" ScaleProportn="0" ViFpBit11="0" ViFpBit12="0" ViFpBit13="0" ViFpBit14="0" ViFpBit15="0" />
+      <Flags0C AutoHndlMenus="1" />
+      <Flags12 WndFloatUnk1="0" WndBit2="1" WndCanClose="1" WndCanResize="1" WndCanMinimize="1" WndTransparent="0" WndFloatUnk9="0" />
+      <Unknown Flags10="3" Field28="0" Field2C="0" Field30="0" AlignGridFP="12" AlignGridBD="16" Field4C="0" Field50Hash="fa7dc6797a346440bf019e0b54d93197" Field70="16384" Field74="0" Field78Hash="" InlineStg="0" Field8C="0" />
+      </Section>
+    </LVSR>
+  <BDPW>
+    <!-- Block Diagram Password -->
+    <Section Index="0" Format="inline">
+      <Password Text="" SaltSource="None" SaltData="" />
+      </Section>
+    </BDPW>
+  <RTSG>
+    <!-- Runtime Signature Guid -->
+    <Section Index="0" Format="inline">
+      <Guid>00000000000000000000000000000000</Guid>
+      </Section>
+    </RTSG>
+  <LIvi>
+    <!-- LinkObj Refs for VI -->
+    <Section Index="0" Format="inline">
+      <LVIN Unk1="Ck_alarm.vi" Unk2="">
+        <!--  VI To StdVI Link Object Ref  -->
+        <VIVI LinkSaveFlag="0" VILinkLibVersion="281474976710656" VILinkFieldA="0" VILinkField4="1" VILinkFieldB="00000000" VILinkFieldC="00000000" VILinkFieldD="0" TypedLinkFlags="0">
+          <LinkSaveQualName>
+            <String>Watlow Read.vi</String>
+            </LinkSaveQualName>
+          <LinkSavePathRef Ident="PTH0" TpVal="1">
+            <String />
+            <String>Watlow Read.vi</String>
+            </LinkSavePathRef>
+          <TypeDesc TypeID="1" />
+          </VIVI>
+        </LVIN>
+      </Section>
+    </LIvi>
+  <CONP>
+    <!-- Connector Pane Type Map -->
+    <Section Index="0" Format="inline">
+      <TypeDesc TypeID="2" />
+      </Section>
+    </CONP>
+  <TM80>
+    <!-- Data Space Type Map LV8.0+ -->
+    <Section Index="0" IndexShift="3" Format="inline">
+      <!-- TypeID 3: AlignedBlock -->
+      <Client TMFBit12="1" />
+      <!-- TypeID 4: Cluster -->
+      <Client TMFBit0="1" TMFBit12="1" />
+      <!-- TypeID 5: AlignedBlock -->
+      <Client TMFBit12="1" />
+      <!-- TypeID 6: Cluster -->
+      <Client TMFBit2="1" TMFBit12="1" />
+      <!-- TypeID 7: NumUInt8 -->
+      <Client TMFBit12="1" TMFBit13="1" />
+      <!-- TypeID 8: NumUInt32 -->
+      <Client TMFBit12="1" TMFBit13="1" />
+      <!-- TypeID 9: Cluster -->
+      <Client TMFBit13="1" />
+      <!-- TypeID 10: NumUInt32 -->
+      <Client TMFBit11="1" TMFBit12="1" TMFBit13="1" />
+      <!-- TypeID 11: AlignedBlock -->
+      <Client TMFBit12="1" />
+      <!-- TypeID 12: AlignedBlock -->
+      <Client TMFBit12="1" />
+      <!-- TypeID 13: RepeatedBlock -->
+      <Client TMFBit12="1" TMFBit13="1" />
+      <!-- TypeID 14: PtrTo -->
+      <Client TMFBit12="1" />
+      <!-- TypeID 15: NumUInt32 -->
+      <Client TMFBit12="1" />
+      <!-- TypeID 16: Boolean -->
+      <Client TMFBit12="1" />
+      <!-- TypeID 17: Void -->
+      <Client TMFBit12="1" />
+      <!-- TypeID 18: AlignedBlock -->
+      <Client TMFBit12="1" />
+      <!-- TypeID 19: NumUInt32 -->
+      <Client TMFBit12="1" />
+      <!-- TypeID 20: AlignedBlock -->
+      <Client TMFBit12="1" />
+      <!-- TypeID 21: Refnum -->
+      <Client TMFBit12="1" />
+      <!-- TypeID 22: Cluster -->
+      <Client />
+      <!-- TypeID 23: AlignedBlock -->
+      <Client TMFBit12="1" />
+      <!-- TypeID 24: AlignedBlock -->
+      <Client TMFBit12="1" />
+      <!-- TypeID 25: RepeatedBlock -->
+      <Client TMFBit12="1" TMFBit13="1" />
+      <!-- TypeID 26: AlignedBlock -->
+      <Client TMFBit12="1" />
+      <!-- TypeID 27: AlignedBlock -->
+      <Client TMFBit12="1" />
+      <!-- TypeID 28: AlignedBlock -->
+      <Client TMFBit12="1" />
+      <!-- TypeID 29: RepeatedBlock -->
+      <Client TMFBit12="1" TMFBit13="1" />
+      <!-- TypeID 30: RepeatedBlock -->
+      <Client TMFBit12="1" TMFBit13="1" />
+      <!-- TypeID 31: Void -->
+      <Client />
+      </Section>
+    </TM80>
+  <DFDS>
+    <!-- Default Fill of Data Space -->
+    <Section Index="0" Format="inline">
+      <DataFill TypeID="4">
+        <Cluster>
+          <RepeatedBlock>
+            <I32>7</I32>
+            <I32>1152</I32>
+            <I32>24</I32>
+            <I32>6</I32>
+            <I32>1388</I32>
+            <I32>27</I32>
+            <I32>1</I32>
+            <I32>1328</I32>
+            <I32>26</I32>
+            <I32>0</I32>
+            <I32>-1</I32>
+            <I32>0</I32>
+            <I32>1</I32>
+            <I32>813</I32>
+            <I32>8</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>1</I32>
+            <I32>860</I32>
+            <I32>10</I32>
+            <I32>0</I32>
+            <I32>1328</I32>
+            <I32>25</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>-1</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>0</I32>
+            <I32>22</I32>
+            </RepeatedBlock>
+          <Block>5d0000002e02000075000000</Block>
+          </Cluster>
+        </DataFill>
+      <DataFill TypeID="6">
+        <SpecialDSTMCluster>
+          <VisaRef StoredAs="String">ASRL2::INSTR</VisaRef>
+          </SpecialDSTMCluster>
+        </DataFill>
+      <DataFill TypeID="7">
+        <!-- Adress -->
+        <U8>2</U8>
+        </DataFill>
+      <DataFill TypeID="8">
+        <!-- Register -->
+        <U32>106</U32>
+        </DataFill>
+      <DataFill TypeID="9">
+        <Cluster>
+          <I32>0</I32>
+          <I32>2</I32>
+          <Array>
+            <dim>2</dim>
+            <Cluster>
+              <I32>0</I32>
+              <I32>0</I32>
+              <U8>0</U8>
+              <U8>0</U8>
+              <I16>0</I16>
+              </Cluster>
+            <Cluster>
+              <I32>1</I32>
+              <I32>1</I32>
+              <U8>0</U8>
+              <U8>0</U8>
+              <I16>1</I16>
+              </Cluster>
+            </Array>
+          <Array>
+            <dim>0</dim>
+            </Array>
+          <Cluster>
+            <I32>4252</I32>
+            <I32>0</I32>
+            <Ptr>None</Ptr>
+            <Ptr>None</Ptr>
+            </Cluster>
+          </Cluster>
+        </DataFill>
+      <DataFill TypeID="13">
+        <RepeatedBlock>
+          <I32>0</I32>
+          <I32>49</I32>
+          </RepeatedBlock>
+        </DataFill>
+      <DataFill TypeID="25">
+        <RepeatedBlock>
+          <I32>0</I32>
+          <I32>16</I32>
+          <I32>17</I32>
+          <I32>18</I32>
+          <I32>19</I32>
+          <I32>20</I32>
+          <I32>21</I32>
+          </RepeatedBlock>
+        </DataFill>
+      <DataFill TypeID="29">
+        <RepeatedBlock>
+          <Cluster>
+            <I16>0</I16>
+            <I16>0</I16>
+            <I8>0</I8>
+            <I8>1</I8>
+            <I8>1</I8>
+            <I8>-1</I8>
+            <I32>740</I32>
+            <I32>3</I32>
+            <I32>4</I32>
+            <I8>0</I8>
+            <I8>0</I8>
+            <I8>0</I8>
+            <I8>1</I8>
+            <I32>752</I32>
+            <I32>760</I32>
+            <I32>868</I32>
+            <I32>0</I32>
+            <I8>0</I8>
+            <I8>0</I8>
+            <I8>0</I8>
+            <I8>0</I8>
+            <I8>3</I8>
+            <I8>0</I8>
+            <I8>0</I8>
+            <I8>0</I8>
+            <Block>00000000</Block>
+            <Block>00000000</Block>
+            <Block>00000000</Block>
+            </Cluster>
+          </RepeatedBlock>
+        </DataFill>
+      <DataFill TypeID="30">
+        <RepeatedBlock>
+          <I32>0</I32>
+          <I32>-1</I32>
+          <I32>-2147482876</I32>
+          <I32>4</I32>
+          <I32>-2147482875</I32>
+          <I32>5</I32>
+          <I32>1073742692</I32>
+          <I32>18</I32>
+          <I32>872</I32>
+          <I32>12</I32>
+          <I32>876</I32>
+          <I32>13</I32>
+          </RepeatedBlock>
+        </DataFill>
+      </Section>
+    </DFDS>
+  <LIds>
+    <!-- LinkObj Refs for Data Space -->
+    <Section Index="0" Format="inline">
+      <VIDS Unk1="Ck_alarm.vi" Unk2="">
+        <!--  DS To DS Link Object Ref  -->
+        <DSDS LinkSaveFlag="0" VILinkLibVersion="281474976710656" VILinkFieldA="0" VILinkField4="2" VILinkFieldB="00000000" VILinkFieldC="00000000" VILinkFieldD="0" TypedLinkFlags="0">
+          <LinkSaveQualName>
+            <String>Watlow Read.vi</String>
+            </LinkSaveQualName>
+          <LinkSavePathRef Ident="PTH0" TpVal="0" ZeroFill="True" />
+          <TypeDesc TypeID="0" />
+          <LinkOffsetList>
+            <Offset>0x035C</Offset>
+            </LinkOffsetList>
+          <DSOffsetList />
+          </DSDS>
+        </VIDS>
+      </Section>
+    </LIds>
+  <VICD>
+    <!-- Virtual Instrument Compiled Data / VI Code -->
+    <Section Index="0" Format="inline">
+      <General CodeID="i386" CodeFlags="0x0" Version="0x0" CompilerOptimizationLevel="0" Verifier="code" EndVerifier="CODE" EndProp1="0" EndSignatureName="0" EndLocalLVRTCodeBlocks="0" EndProp5="0" />
+      <Code InitProcOffset="0x5D6" NumberOfBasicBlocks="0" HostCodeEntryVI="0x77845C7" SignatureName="0xB8" Format="bin" File="Ck_alarm_VICD_code.bin" />
+      <Patches PaddedSize="114" Type="LVRT" Format="inline">
+        <Patch Offset="0x0057" Ident="0x01cc" />
+        <Patch Offset="0x013f" Ident="0x02af" />
+        <Patch Offset="0x0240" Ident="0x01b7" />
+        <Patch Offset="0x0496" Ident="0x01ba" />
+        <Patch Offset="0x059b" Ident="0x01bd" />
+        <Patch Offset="0x05c1" Ident="0x01c9" />
+        <Patch Offset="0x060a" Ident="0x01c3" />
+        <Patch Offset="0x0001" Ident="0xffffffff" Field2="0">
+          <Reloc>0x0028</Reloc>
+          <Reloc>0x00f8</Reloc>
+          <Reloc>0x0121</Reloc>
+          <Reloc>0x0274</Reloc>
+          <Reloc>0x02ea</Reloc>
+          <Reloc>0x0324</Reloc>
+          <Reloc>0x035e</Reloc>
+          <Reloc>0x0398</Reloc>
+          <Reloc>0x03cf</Reloc>
+          <Reloc>0x0406</Reloc>
+          <Reloc>0x0416</Reloc>
+          <Reloc>0x045f</Reloc>
+          <Reloc>0x05e4</Reloc>
+          <Reloc>0x05ec</Reloc>
+          <Reloc>0x05f4</Reloc>
+          <Reloc>0x05fc</Reloc>
+          </Patch>
+        </Patches>
+      </Section>
+    </VICD>
+  <vers>
+    <!-- Version block -->
+    <Section Index="4" Format="inline">
+      <Version Major="8" Minor="6" Bugfix="0" Stage="release" Build="1" Language="0" Info="8.6" Comment="" />
+      </Section>
+    </vers>
+  <SCSR>
+    <!-- Syntax Checker Digest -->
+    <Section Index="0" Flags="0x74615701" Format="inline">
+      <Digest>6c6f7720526561642e76690000000000</Digest>
+      </Section>
+    </SCSR>
+  <DLDR>
+    <!-- DataLog Data Record -->
+    <Section Index="0" Prop1="1" Prop2="0" Prop3="0000000000000000000000000000000000000000" Format="inline" />
+    </DLDR>
+  <FPTD>
+    <!-- Front Panel Type for DataLog -->
+    <Section Index="0" Format="inline">
+      <TypeDesc TypeID="32" />
+      </Section>
+    </FPTD>
+  <CPMp>
+    <!-- Connection Points Map -->
+    <Section Index="0" Field1="0" Format="inline">
+      <TypeDesc Flags="-1" />
+      </Section>
+    </CPMp>
+  <ICON>
+    <!-- Icon 32x32 1bpp -->
+    <Section Index="0" Format="png" File="Ck_alarm_ICON.png" />
+    </ICON>
+  <icl8>
+    <!-- Icon Large 32x32 8bpp -->
+    <Section Index="0" Format="png" File="Ck_alarm_icl8.png" />
+    </icl8>
+  <DTHP>
+    <!-- Data Types for Heap -->
+    <Section Index="0" Format="inline">
+      <!-- Heap TypeID  1 = Consolidated TypeID 33: Refnum -->
+      <!-- Heap TypeID  2 = Consolidated TypeID 34: Tag -->
+      <!-- Heap TypeID  3 = Consolidated TypeID 35: Refnum -->
+      <!-- Heap TypeID  4 = Consolidated TypeID 36: Boolean -->
+      <!-- Heap TypeID  5 = Consolidated TypeID 37: NumUInt32 -->
+      <!-- Heap TypeID  6 = Consolidated TypeID 38: Boolean -->
+      <!-- Heap TypeID  7 = Consolidated TypeID 39: NumUInt8 -->
+      <!-- Heap TypeID  8 = Consolidated TypeID 40: NumUInt32 -->
+      <!-- Heap TypeID  9 = Consolidated TypeID 41: Void -->
+      <!-- Heap TypeID 10 = Consolidated TypeID 42: Cluster -->
+      <!-- Heap TypeID 11 = Consolidated TypeID 43: Refnum -->
+      <!-- Heap TypeID 12 = Consolidated TypeID 44: NumUInt32 -->
+      <!-- Heap TypeID 13 = Consolidated TypeID 45: Cluster -->
+      <!-- Heap TypeID 14 = Consolidated TypeID 46: Function -->
+      <!-- Heap TypeID 15 = Consolidated TypeID 47: NumUInt8 -->
+      <!-- Heap TypeID 16 = Consolidated TypeID 48: NumUInt8 -->
+      <!-- Heap TypeID 17 = Consolidated TypeID 49: NumUInt32 -->
+      <!-- Heap TypeID 18 = Consolidated TypeID 50: NumUInt32 -->
+      <TypeDescSlice IndexShift="33" Count="18" />
+      </Section>
+    </DTHP>
+  <LIfp>
+    <!-- LinkObj Refs for Front Panel -->
+    <Section Index="0" Format="inline">
+      <FPHP Unk1="Ck_alarm.vi" Unk2="" />
+      </Section>
+    </LIfp>
+  <STR>
+    <!-- Short String / Input definition? -->
+    <Section Index="2" Format="inline">
+      <LVVariant HasVarItem2="1" VarType2="0" Version="auto">
+        <DataType Index="0" Type="Void" Format="inline" />
+        <Attributes>
+          <LVVariant Name="classString" HasVarItem2="1" VarType2="0" Version="auto">
+            <DataType Index="0" Type="String" Prop1="0xFFFFFFFF" Format="inline" />
+            <DataFill>
+              <String>?*::(INSTR|SOCKET)</String>
+              </DataFill>
+            </LVVariant>
+          <LVVariant Name="displayFilter" HasVarItem2="1" VarType2="0" Version="auto">
+            <DataType Index="0" Type="NumUInt32" Prop1="0" Format="inline" />
+            <DataFill>
+              <U32>73728</U32>
+              </DataFill>
+            </LVVariant>
+          <LVVariant Name="typeClass" HasVarItem2="1" VarType2="0" Version="auto">
+            <DataType Index="0" Type="String" Prop1="0xFFFFFFFF" Format="inline" />
+            <DataFill>
+              <String>Instr</String>
+              </DataFill>
+            </LVVariant>
+          </Attributes>
+        <DataFill>
+          <Void />
+          </DataFill>
+        </LVVariant>
+      </Section>
+    </STR>
+  <FPHc>
+    <!-- Front Panel Heap ver c -->
+    <Section Index="0" Format="bin" File="Ck_alarm_FPHc.bin" />
+    </FPHc>
+  <FPSE>
+    <!-- Front Panel Size Estimate -->
+    <Section Index="0" Format="bin" File="Ck_alarm_FPSE.bin" />
+    </FPSE>
+  <LIbd>
+    <!-- LinkObj Refs for Block diagram -->
+    <Section Index="0" Format="inline">
+      <BDHP Unk1="Ck_alarm.vi" Unk2="">
+        <!--  IUse To VI Link Object Ref  -->
+        <IUVI LinkSaveFlag="0" VILinkLibVersion="281474976710656" VILinkFieldA="0" VILinkField4="1" VILinkFieldB="00000000" VILinkFieldC="00000000" VILinkFieldD="0" TypedLinkFlags="0">
+          <LinkSaveQualName>
+            <String>Watlow Read.vi</String>
+            </LinkSaveQualName>
+          <LinkSavePathRef Ident="PTH0" TpVal="1">
+            <String />
+            <String>Watlow Read.vi</String>
+            </LinkSavePathRef>
+          <TypeDesc TypeID="0" />
+          <LinkOffsetList>
+            <Offset>0x0031</Offset>
+            </LinkOffsetList>
+          <VILSPathRef Ident="PTH0" TpVal="0" ZeroFill="True" />
+          <IUseStr />
+          </IUVI>
+        </BDHP>
+      </Section>
+    </LIbd>
+  <BDHc>
+    <!-- Block Diagram Heap ver c -->
+    <Section Index="0" Format="bin" File="Ck_alarm_BDHc.bin" />
+    </BDHc>
+  <BDSE>
+    <!-- Block Diagram Size Estimate -->
+    <Section Index="0" Format="bin" File="Ck_alarm_BDSE.bin" />
+    </BDSE>
+  <MUID>
+    <!-- Map Unique Identifier -->
+    <Section Index="0" Value="254" Format="inline" />
+    </MUID>
+  <HIST>
+    <!-- Changes History -->
+    <Section Index="0" Format="bin" File="Ck_alarm_HIST.bin" />
+    </HIST>
+  <VCTP>
+    <!-- VI Consolidated Data Types -->
+    <Section Index="0" Format="inline">
+      <!-- FlatTypeID 0: Type Descriptor with single number as data -->
+      <TypeDesc Type="NumUInt8" Prop1="0" Format="inline" Label="Adress" />
+      <!-- FlatTypeID 1: Type Descriptor with single number as data -->
+      <TypeDesc Type="NumUInt32" Prop1="0" Format="inline" Label="Register" />
+      <!-- FlatTypeID 2: Type Descriptor with Void data -->
+      <TypeDesc Type="Void" Format="inline" />
+      <!-- FlatTypeID 3: Type Descriptor with Boolean data -->
+      <TypeDesc Type="Boolean" Format="inline" Label="status" />
+      <!-- FlatTypeID 4: Type Descriptor with single number as data -->
+      <TypeDesc Type="NumInt32" Prop1="0" Format="inline" Label="code" />
+      <!-- FlatTypeID 5: Type Descriptor with String data -->
+      <TypeDesc Type="String" Prop1="0xFFFFFFFF" Format="inline" Label="source" />
+      <!-- FlatTypeID 6: Type Descriptor which Clusters together other TDs into a struct -->
+      <TypeDesc Type="Cluster" Format="inline" Label="error in">
+        <TypeDesc TypeID="3" />
+        <TypeDesc TypeID="4" />
+        <TypeDesc TypeID="5" />
+        </TypeDesc>
+      <!-- FlatTypeID 7: Type Descriptor with Tag data -->
+      <TypeDesc Type="Tag" Prop1="0xFFFFFFFF" TagType="1024" Format="inline">
+        <LVVariant Index="0" HasVarItem2="1" VarType2="0" Version="auto">
+          <DataType Index="0" Type="Void" Format="inline" />
+          </LVVariant>
+        </TypeDesc>
+      <!-- FlatTypeID 8: Type Descriptor with Reference data -->
+      <TypeDesc Type="Refnum" RefType="VisaRef" Ident="Instr" FirstClient="1" Format="inline" Label="VISA resource name">
+        <TypeDesc TypeID="7" />
+        <LVVariant Index="0" HasVarItem2="1" VarType2="0" Version="auto">
+          <DataType Index="0" Type="Void" Format="inline" />
+          </LVVariant>
+        </TypeDesc>
+      <!-- FlatTypeID 9: Type Descriptor with single number as data -->
+      <TypeDesc Type="NumUInt32" Prop1="0" Format="inline" Label="Number" />
+      <!-- FlatTypeID 10: Type Descriptor which Clusters together other TDs into a struct -->
+      <TypeDesc Type="Cluster" Format="inline" Label="error out">
+        <TypeDesc TypeID="3" />
+        <TypeDesc TypeID="4" />
+        <TypeDesc TypeID="5" />
+        </TypeDesc>
+      <!-- FlatTypeID 11: Type Descriptor with Function data -->
+      <TypeDesc Type="Function" FuncFlags="0x300" Pattern="0xC0" HasThrall="0" Format="inline">
+        <TypeDesc TypeID="0" Flags="0x0800" />
+        <TypeDesc TypeID="1" Flags="0x0A00" />
+        <TypeDesc TypeID="2" Flags="0x0000" />
+        <TypeDesc TypeID="6" Flags="0x0A20" />
+        <TypeDesc TypeID="8" Flags="0x0A20" />
+        <TypeDesc TypeID="9" Flags="0x0900" />
+        <TypeDesc TypeID="10" Flags="0x0D23" />
+        </TypeDesc>
+      <!-- FlatTypeID 12: Type Descriptor with Function data -->
+      <TypeDesc Type="Function" FuncFlags="0x300" Pattern="0x0" HasThrall="0" Format="inline">
+        <TypeDesc TypeID="2" Flags="0x0000" />
+        </TypeDesc>
+      <!-- FlatTypeID 13: Type Descriptor with Aligned Block data -->
+      <TypeDesc Type="AlignedBlock" BlockSize="0x1EC" Format="inline">
+        <TypeDesc TypeID="4" />
+        </TypeDesc>
+      <!-- FlatTypeID 14: Type Descriptor with single number as data -->
+      <TypeDesc Type="NumInt32" Prop1="0" Format="inline" />
+      <!-- FlatTypeID 15: Type Descriptor with data consisting of repeated Block -->
+      <TypeDesc Type="RepeatedBlock" NumRepeats="49" Format="inline">
+        <TypeDesc TypeID="14" />
+        </TypeDesc>
+      <!-- FlatTypeID 16: Type Descriptor with Block based data -->
+      <TypeDesc Type="Block" BlockSize="0xC" Format="inline" />
+      <!-- FlatTypeID 17: Type Descriptor which Clusters together other TDs into a struct -->
+      <TypeDesc Type="Cluster" Format="inline">
+        <TypeDesc TypeID="15" />
+        <TypeDesc TypeID="16" />
+        </TypeDesc>
+      <!-- FlatTypeID 18: Type Descriptor with Aligned Block data -->
+      <TypeDesc Type="AlignedBlock" BlockSize="0x28" Format="inline">
+        <TypeDesc TypeID="1" />
+        </TypeDesc>
+      <!-- FlatTypeID 19: Type Descriptor with single number as data -->
+      <TypeDesc Type="NumUInt32" Prop1="0" Format="inline" Label="flg" />
+      <!-- FlatTypeID 20: Type Descriptor with Number Pointer as data -->
+      <TypeDesc Type="Ptr" Format="inline" Label="oRt" />
+      <!-- FlatTypeID 21: Type Descriptor with single number as data -->
+      <TypeDesc Type="NumUInt32" Prop1="0" Format="inline" Label="eof" />
+      <!-- FlatTypeID 22: Type Descriptor which Clusters together other TDs into a struct -->
+      <TypeDesc Type="Cluster" Format="inline" Label="udf">
+        <TypeDesc TypeID="19" />
+        <TypeDesc TypeID="20" />
+        <TypeDesc TypeID="21" />
+        </TypeDesc>
+      <!-- FlatTypeID 23: Type Descriptor with Reference data -->
+      <TypeDesc Type="Refnum" RefType="VisaRef" Ident="Instr" FirstClient="1" Format="inline" Label="dfd">
+        <TypeDesc TypeID="7" />
+        <LVVariant Index="0" HasVarItem2="1" VarType2="0" Version="auto">
+          <DataType Index="0" Type="Void" Format="inline" />
+          </LVVariant>
+        </TypeDesc>
+      <!-- FlatTypeID 24: Type Descriptor with Reference data -->
+      <TypeDesc Type="Refnum" RefType="VisaRef" Ident="Instr" FirstClient="1" Format="inline" Label="txd">
+        <TypeDesc TypeID="7" />
+        <LVVariant Index="0" HasVarItem2="1" VarType2="0" Version="auto">
+          <DataType Index="0" Type="Void" Format="inline" />
+          </LVVariant>
+        </TypeDesc>
+      <!-- FlatTypeID 25: Type Descriptor with Reference data -->
+      <TypeDesc Type="Refnum" RefType="VisaRef" Ident="Instr" FirstClient="1" Format="inline" Label="old">
+        <TypeDesc TypeID="7" />
+        <LVVariant Index="0" HasVarItem2="1" VarType2="0" Version="auto">
+          <DataType Index="0" Type="Void" Format="inline" />
+          </LVVariant>
+        </TypeDesc>
+      <!-- FlatTypeID 26: Type Descriptor with Reference data -->
+      <TypeDesc Type="Refnum" RefType="VisaRef" Ident="Instr" FirstClient="1" Format="inline" Label="ext">
+        <TypeDesc TypeID="7" />
+        <LVVariant Index="0" HasVarItem2="1" VarType2="0" Version="auto">
+          <DataType Index="0" Type="Void" Format="inline" />
+          </LVVariant>
+        </TypeDesc>
+      <!-- FlatTypeID 27: Type Descriptor which Clusters together other TDs into a struct -->
+      <TypeDesc Type="Cluster" Format="inline">
+        <TypeDesc TypeID="22" />
+        <TypeDesc TypeID="8" />
+        <TypeDesc TypeID="23" />
+        <TypeDesc TypeID="24" />
+        <TypeDesc TypeID="25" />
+        <TypeDesc TypeID="26" />
+        </TypeDesc>
+      <!-- FlatTypeID 28: Type Descriptor with single number as data -->
+      <TypeDesc Type="NumUInt8" Prop1="0" Format="inline" />
+      <!-- FlatTypeID 29: Type Descriptor with single number as data -->
+      <TypeDesc Type="NumInt16" Prop1="0" Format="inline" />
+      <!-- FlatTypeID 30: Type Descriptor which Clusters together other TDs into a struct -->
+      <TypeDesc Type="Cluster" Format="inline">
+        <TypeDesc TypeID="14" />
+        <TypeDesc TypeID="14" />
+        <TypeDesc TypeID="28" />
+        <TypeDesc TypeID="28" />
+        <TypeDesc TypeID="29" />
+        </TypeDesc>
+      <!-- FlatTypeID 31: Type Descriptor with Multidimentional Array data -->
+      <TypeDesc Type="Array" Format="inline">
+        <Dimension Flags="0x00FF" FixedSize="0xFFFFFF" />
+        <TypeDesc TypeID="30" />
+        </TypeDesc>
+      <!-- FlatTypeID 32: Type Descriptor with String data -->
+      <TypeDesc Type="String" Prop1="0xFFFFFFFF" Format="inline" />
+      <!-- FlatTypeID 33: Type Descriptor with Multidimentional Array data -->
+      <TypeDesc Type="Array" Format="inline">
+        <Dimension Flags="0x00FF" FixedSize="0xFFFFFF" />
+        <TypeDesc TypeID="32" />
+        </TypeDesc>
+      <!-- FlatTypeID 34: Type Descriptor with Number Pointer as data -->
+      <TypeDesc Type="Ptr" Format="inline" />
+      <!-- FlatTypeID 35: Type Descriptor which Clusters together other TDs into a struct -->
+      <TypeDesc Type="Cluster" Format="inline">
+        <TypeDesc TypeID="14" />
+        <TypeDesc TypeID="14" />
+        <TypeDesc TypeID="34" />
+        <TypeDesc TypeID="34" />
+        </TypeDesc>
+      <!-- FlatTypeID 36: Type Descriptor which Clusters together other TDs into a struct -->
+      <TypeDesc Type="Cluster" Format="inline">
+        <TypeDesc TypeID="14" />
+        <TypeDesc TypeID="14" />
+        <TypeDesc TypeID="31" />
+        <TypeDesc TypeID="33" />
+        <TypeDesc TypeID="35" />
+        </TypeDesc>
+      <!-- FlatTypeID 37: Type Descriptor with single number as data -->
+      <TypeDesc Type="NumUInt32" Prop1="0" Format="inline" />
+      <!-- FlatTypeID 38: Type Descriptor with Aligned Block data -->
+      <TypeDesc Type="AlignedBlock" BlockSize="0x2C" Format="inline">
+        <TypeDesc TypeID="1" />
+        </TypeDesc>
+      <!-- FlatTypeID 39: Type Descriptor with Aligned Block data -->
+      <TypeDesc Type="AlignedBlock" BlockSize="0x3" Format="inline">
+        <TypeDesc TypeID="1" />
+        </TypeDesc>
+      <!-- FlatTypeID 40: Type Descriptor with data consisting of repeated Block -->
+      <TypeDesc Type="RepeatedBlock" NumRepeats="2" Format="inline">
+        <TypeDesc TypeID="14" />
+        </TypeDesc>
+      <!-- FlatTypeID 41: Type Descriptor which is container for one child TD -->
+      <TypeDesc Type="PtrTo" Format="inline">
+        <TypeDesc TypeID="8" />
+        </TypeDesc>
+      <!-- FlatTypeID 42: Type Descriptor with Boolean data -->
+      <TypeDesc Type="Boolean" Format="inline" />
+      <!-- FlatTypeID 43: Type Descriptor with Aligned Block data -->
+      <TypeDesc Type="AlignedBlock" BlockSize="0xC" Format="inline">
+        <TypeDesc TypeID="1" />
+        </TypeDesc>
+      <!-- FlatTypeID 44: Type Descriptor with Aligned Block data -->
+      <TypeDesc Type="AlignedBlock" BlockSize="0x5C" Format="inline">
+        <TypeDesc TypeID="1" />
+        </TypeDesc>
+      <!-- FlatTypeID 45: Type Descriptor with data consisting of repeated Block -->
+      <TypeDesc Type="RepeatedBlock" NumRepeats="7" Format="inline">
+        <TypeDesc TypeID="14" />
+        </TypeDesc>
+      <!-- FlatTypeID 46: Type Descriptor with Aligned Block data -->
+      <TypeDesc Type="AlignedBlock" BlockSize="0x78" Format="inline">
+        <TypeDesc TypeID="1" />
+        </TypeDesc>
+      <!-- FlatTypeID 47: Type Descriptor with Aligned Block data -->
+      <TypeDesc Type="AlignedBlock" BlockSize="0xB0" Format="inline">
+        <TypeDesc TypeID="4" />
+        </TypeDesc>
+      <!-- FlatTypeID 48: Type Descriptor with Aligned Block data -->
+      <TypeDesc Type="AlignedBlock" BlockSize="0x0" Format="inline">
+        <TypeDesc TypeID="4" />
+        </TypeDesc>
+      <!-- FlatTypeID 49: Type Descriptor with single number as data -->
+      <TypeDesc Type="NumInt8" Prop1="0" Format="inline" />
+      <!-- FlatTypeID 50: Type Descriptor with Block based data -->
+      <TypeDesc Type="Block" BlockSize="0x4" Format="inline" />
+      <!-- FlatTypeID 51: Type Descriptor which Clusters together other TDs into a struct -->
+      <TypeDesc Type="Cluster" Format="inline">
+        <TypeDesc TypeID="29" />
+        <TypeDesc TypeID="29" />
+        <TypeDesc TypeID="49" />
+        <TypeDesc TypeID="49" />
+        <TypeDesc TypeID="49" />
+        <TypeDesc TypeID="49" />
+        <TypeDesc TypeID="14" />
+        <TypeDesc TypeID="14" />
+        <TypeDesc TypeID="14" />
+        <TypeDesc TypeID="49" />
+        <TypeDesc TypeID="49" />
+        <TypeDesc TypeID="49" />
+        <TypeDesc TypeID="49" />
+        <TypeDesc TypeID="14" />
+        <TypeDesc TypeID="14" />
+        <TypeDesc TypeID="14" />
+        <TypeDesc TypeID="14" />
+        <TypeDesc TypeID="49" />
+        <TypeDesc TypeID="49" />
+        <TypeDesc TypeID="49" />
+        <TypeDesc TypeID="49" />
+        <TypeDesc TypeID="49" />
+        <TypeDesc TypeID="49" />
+        <TypeDesc TypeID="49" />
+        <TypeDesc TypeID="49" />
+        <TypeDesc TypeID="50" />
+        <TypeDesc TypeID="50" />
+        <TypeDesc TypeID="50" />
+        </TypeDesc>
+      <!-- FlatTypeID 52: Type Descriptor with data consisting of repeated Block -->
+      <TypeDesc Type="RepeatedBlock" NumRepeats="1" Format="inline">
+        <TypeDesc TypeID="51" />
+        </TypeDesc>
+      <!-- FlatTypeID 53: Type Descriptor with data consisting of repeated Block -->
+      <TypeDesc Type="RepeatedBlock" NumRepeats="12" Format="inline">
+        <TypeDesc TypeID="14" />
+        </TypeDesc>
+      <!-- FlatTypeID 54: Type Descriptor with single number as data -->
+      <TypeDesc Type="NumUInt16" Prop1="0" Format="inline" />
+      <!-- FlatTypeID 55: Type Descriptor which Clusters together other TDs into a struct -->
+      <TypeDesc Type="Cluster" Format="inline">
+        <TypeDesc TypeID="37" />
+        <TypeDesc TypeID="54" />
+        </TypeDesc>
+      <!-- FlatTypeID 56: Type Descriptor which Clusters together other TDs into a struct -->
+      <TypeDesc Type="Cluster" Format="inline">
+        <TypeDesc TypeID="8" />
+        </TypeDesc>
+      <!-- FlatTypeID 57: Type Descriptor which Clusters together other TDs into a struct -->
+      <TypeDesc Type="Cluster" Format="inline">
+        <TypeDesc TypeID="55" />
+        <TypeDesc TypeID="56" />
+        </TypeDesc>
+      <!-- FlatTypeID 58: Type Descriptor with Reference data -->
+      <TypeDesc Type="Refnum" RefType="DataLog" Format="inline">
+        <TypeDesc TypeID="57" />
+        </TypeDesc>
+      <TopLevel>
+        <!-- When Consolidated Type is referred to in other blocks, the TypeID is Index from this list -->
+        <TypeDesc Index="1" FlatTypeID="11" />
+        <TypeDesc Index="2" FlatTypeID="12" />
+        <TypeDesc Index="3" FlatTypeID="13" />
+        <TypeDesc Index="4" FlatTypeID="17" />
+        <TypeDesc Index="5" FlatTypeID="18" />
+        <TypeDesc Index="6" FlatTypeID="27" />
+        <TypeDesc Index="7" FlatTypeID="0" />
+        <TypeDesc Index="8" FlatTypeID="1" />
+        <TypeDesc Index="9" FlatTypeID="36" />
+        <TypeDesc Index="10" FlatTypeID="37" />
+        <TypeDesc Index="11" FlatTypeID="38" />
+        <TypeDesc Index="12" FlatTypeID="39" />
+        <TypeDesc Index="13" FlatTypeID="40" />
+        <TypeDesc Index="14" FlatTypeID="41" />
+        <TypeDesc Index="15" FlatTypeID="9" />
+        <TypeDesc Index="16" FlatTypeID="42" />
+        <TypeDesc Index="17" FlatTypeID="2" />
+        <TypeDesc Index="18" FlatTypeID="39" />
+        <TypeDesc Index="19" FlatTypeID="1" />
+        <TypeDesc Index="20" FlatTypeID="43" />
+        <TypeDesc Index="21" FlatTypeID="8" />
+        <TypeDesc Index="22" FlatTypeID="6" />
+        <TypeDesc Index="23" FlatTypeID="44" />
+        <TypeDesc Index="24" FlatTypeID="39" />
+        <TypeDesc Index="25" FlatTypeID="45" />
+        <TypeDesc Index="26" FlatTypeID="46" />
+        <TypeDesc Index="27" FlatTypeID="47" />
+        <TypeDesc Index="28" FlatTypeID="48" />
+        <TypeDesc Index="29" FlatTypeID="52" />
+        <TypeDesc Index="30" FlatTypeID="53" />
+        <TypeDesc Index="31" FlatTypeID="2" />
+        <TypeDesc Index="32" FlatTypeID="58" />
+        <TypeDesc Index="33" FlatTypeID="8" />
+        <TypeDesc Index="34" FlatTypeID="7" />
+        <TypeDesc Index="35" FlatTypeID="8" />
+        <TypeDesc Index="36" FlatTypeID="42" />
+        <TypeDesc Index="37" FlatTypeID="37" />
+        <TypeDesc Index="38" FlatTypeID="42" />
+        <TypeDesc Index="39" FlatTypeID="0" />
+        <TypeDesc Index="40" FlatTypeID="1" />
+        <TypeDesc Index="41" FlatTypeID="2" />
+        <TypeDesc Index="42" FlatTypeID="6" />
+        <TypeDesc Index="43" FlatTypeID="8" />
+        <TypeDesc Index="44" FlatTypeID="9" />
+        <TypeDesc Index="45" FlatTypeID="10" />
+        <TypeDesc Index="46" FlatTypeID="11" />
+        <TypeDesc Index="47" FlatTypeID="0" />
+        <TypeDesc Index="48" FlatTypeID="0" />
+        <TypeDesc Index="49" FlatTypeID="1" />
+        <TypeDesc Index="50" FlatTypeID="1" />
+        </TopLevel>
+      </Section>
+    </VCTP>
+  <FTAB>
+    <!-- Font Table -->
+    <Section Index="128" Prop1="0x10002" Prop3="3" Format="inline">
+      <Font Prop2="17" Prop3="1024" Prop4="0" Prop6="17" Prop7="266" Prop8="242">
+        <Name>Tahoma</Name>
+        </Font>
+      <Font Prop2="17" Prop3="1024" Prop4="0" Prop6="17" Prop7="266" Prop8="242">
+        <Name>Tahoma</Name>
+        </Font>
+      <Font Prop2="17" Prop3="1024" Prop4="0" Prop6="17" Prop7="266" Prop8="242">
+        <Name>Tahoma</Name>
+        </Font>
+      <Font Prop2="32768" Prop3="33792" Prop4="32768" Prop6="17" Prop7="266" Prop8="242">
+        <Name>0</Name>
+        </Font>
+      </Section>
+    </FTAB>
+  </RSRC>

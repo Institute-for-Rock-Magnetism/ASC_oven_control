@@ -1,0 +1,241 @@
+LVINLBVW
+LVINLBVW
+Watlow Read.vi
+Instance
+Watlow Read.vi:Instance:0
+subTimeDelay.viPTH0
+<vilib>
+express
+express execution control
+TimeDelayBlock.llb
+subTimeDelay.vi
+iN4w`s
+Watlow Read.vi:Instance:0
+subTimeDelay.viPTH0
+Xh5l2
+:Qip8
+<VqAI+
+}Inserts a time delay into the calling VI.
+--------------------
+This Express VI is configured as follows:
+Delay Time: 0.5 s
+$PTH0
+<helpdir>
+lvexpress.chm
+Time_Delay.html
+ffffffffffffff
+ffffffffffffffo
+Time Delay
+Watlow Read.vi:Instance:0
+mIDATx
+sIDATx
+mIDATx
+sIDATx
+Qb1-F
+f8bT0
+%@W!X
+?"/:*
+Ekv/t
+U'g^Z\
+hf7<X
+Watlow Read.vi:Instance:0
+subTimeDelay.viPTH0
+<vilib>
+express
+express execution control
+TimeDelayBlock.llb
+subTimeDelay.vi
+xPTH0
+K<=Xb
+_Wizard
+<vilib>
+express
+express execution control
+TimeDelayConfig.llb
+Configure Time Delay.vi
+_OriginalInstancePath
+<vilib>
+express
+express execution control
+TimeDelayBlock.llb
+Ex_Inst_Time Delay.vi
+Localized
+TagName
+Localize
+NI.LV.ALL.goodSyntaxTargets
+NI.LV.ALL.VILastSavedTarget
+NI.VI.HiddenNSLibOutOfDate
+]!s,n
+Segoe UI
+Segoe UI
+Segoe UI
+LVINLBVW
+(LIBN
+,CONP
+@TM80
+TDFDS
+hLIds
+|VICD
+0HLPT
+DHLPX
+XICON
+licl4
+4FPSE
+HIPSR
+\CNST
+pLPIN
+$VCTP
+8FTAB
+Watlow Read.vi
+Instance
+Calc CRC-sub.viPTH0
+Calc CRC-sub.vi
+VISA Configure Serial Port
+<vilib>
+Instr
+_visa.llb
+VISA Configure Serial Port
+%VISA Configure Serial Port (Instr).viPTH0
+<vilib>
+Instr
+_visa.llb%VISA Configure Serial Port (Instr).vi
+"$~ovfw
++m6V;
+1Km2O
+X_@_@_~
+Watlow Read.vi
+Instance
+%VISA Configure Serial Port (Instr).viPTH0
+Calc CRC-sub.viPTH0
+$M,Ky
+y5V\Mp
+E{nR`
+.%03Q
+:,VtzPb
+h/piU#
+]7)A=
++/!qe"
+!}xqe
+Ky#]8
+FZfF&
+@bmD$v
+jH4\nX
+2tdUX+
+Watlow Read.vi
+fffff3ff
+f3ff33f3
+3ff3f33f
+33f33333
+""")))UUUMMMBBB999
+?IDATx
+fffff3ff
+f3ff33f3
+3ff3f33f
+33f33333
+""")))UUUMMMBBB999
+AIDATx
+classString
+?*::(INSTR|SOCKET)
+displayFilter
+typeClass
+Instr
+m ~F6MxL
+==nkd
+P,<lV
+?mw {
+;N(5!
+n6R:#
+]rB8N
+P(4.a*
+LQTAHrHt
+\R@h)
+c\1Wc
+AKHw k
+R]_$7
+WV|w^y
+Gp9Rz
+Watlow Read.vi
+Calc CRC-sub.viPTH0
+Calc CRC-sub.vi
+visarc
+Program Files (x86)
+National Instruments
+LabVIEW 2009
+resource
+visarc
+visarc
+Instr
+Instance
+WPTH0
+VISA Configure Serial Port
+<vilib>
+Instr
+_visa.llb
+VISA Configure Serial Port
+%VISA Configure Serial Port (Instr).viPTH0
+<vilib>
+Instr
+_visa.llb%VISA Configure Serial Port (Instr).vi
+{LMm]
+c(>IV=JT]
+WQWWU]
+&LUqX!
+I!<"H
+R<'*=k
+vTN0L
+dNaB+
+i&HXL
+>hfS't>
+P5!CO:w
+ZO7ZOgXOk
+_4:%_j*6
+d"'4:
+6YWNh
+Q^+'&*"1
+e/K|1L
+9>?g?>g53>/or2
+cIM6]
+x\^Rob
+@S7+2u
+oTr)-
+Y`[#7
+X5uvU
+3SiHA
+{;aasel;
+NI.LV.ALL.VILastSavedTarget
+NI.LV.ALL.goodSyntaxTargets
+vWWWWW
+([jnE;I
+lMC]h
+L"Zf+6V
+h\a/v
+h#}mn
+|Ud`)t
+/tBZp^
+H/ ._^
+pC'Po
+Se'&r-
+0*Or[
+H7X/?
+JJQj2
+*JUbE
+oLf()
+Segoe UI
+Segoe UI
+Segoe UI
+LVINLBVW
+#VINS
+,DFDS
+@LIds
+TVICD
+hvers
+|SCSR
+0STR 
+XPICC
+lFPHb
+ VITS
+4DTHP
+HMUID
+\HIST
+pVCTP
+Watlow Read.vi

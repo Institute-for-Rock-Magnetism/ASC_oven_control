@@ -1,0 +1,298 @@
+LVINLBVW
+LVINLBVW
+Watlow Write.vi
+Instance
+Watlow Write.vi:Instance:0
+subTimeDelay.viPTH0
+<vilib>
+express
+express execution control
+TimeDelayBlock.llb
+subTimeDelay.vi
+iN4w`s
+Watlow Write.vi:Instance:0
+subTimeDelay.viPTH0
+Xh5l2
+:Qip8
+<VqAI+
+}Inserts a time delay into the calling VI.
+--------------------
+This Express VI is configured as follows:
+Delay Time: 0.5 s
+$PTH0
+<helpdir>
+lvexpress.chm
+Time_Delay.html
+ffffffffffffff
+ffffffffffffffo
+Time Delay
+Watlow Write.vi:Instance:0
+mIDATx
+sIDATx
+mIDATx
+sIDATx
+Qb1-F
+f8bT0
+%@W!X
+?"/:*
+Ekv/t
+U'g^Z\
+hf7<X
+Watlow Write.vi:Instance:0
+subTimeDelay.viPTH0
+<vilib>
+express
+express execution control
+TimeDelayBlock.llb
+subTimeDelay.vi
+xPTH0
+K<=Xb
+_Wizard
+<vilib>
+express
+express execution control
+TimeDelayConfig.llb
+Configure Time Delay.vi
+_OriginalInstancePath
+<vilib>
+express
+express execution control
+TimeDelayBlock.llb
+Ex_Inst_Time Delay.vi
+Localized
+TagName
+Localize
+NI.LV.ALL.goodSyntaxTargets
+NI.LV.ALL.VILastSavedTarget
+NI.VI.HiddenNSLibOutOfDate
+]!s,n
+Segoe UI
+Segoe UI
+Segoe UI
+LVINLBVW
+(LIBN
+,CONP
+@TM80
+TDFDS
+hLIds
+|VICD
+0HLPT
+DHLPX
+XICON
+licl4
+4FPSE
+HIPSR
+\CNST
+pLPIN
+$VCTP
+8FTAB
+Watlow Write.vi
+Instance
+VISA Configure Serial Port
+<vilib>
+Instr
+_visa.llb
+VISA Configure Serial Port
+%VISA Configure Serial Port (Instr).viPTH0
+<vilib>
+Instr
+_visa.llb%VISA Configure Serial Port (Instr).vi
+Calc CRC-sub.viPTH0
+Calc CRC-sub.vi
+h<13}m
+Yrcy%
+V}q5E
+Watlow Write.vi
+Instance
+%VISA Configure Serial Port (Instr).viPTH0
+Calc CRC-sub.viPTH0
+qGp5M 
+Eww{EMP<!
+yW64MK?T-
+I(Q3kA
+2+%,Y)a
+FZnEN r
+DD@ Q
+Y@dH 
+Y+$k-mB.o
+<nA.S
+@^cA.
+*GZaE
+@9<x#
+llllllllllllllllllllllllllllll
+llllllllllllllllllllllllllllll
+llllllllllllllllllllllllllllll
+llllllllllllll#lllllllllllllll
+llllllllllllllll#lllllllllllll
+lllll#l#l#l#l##l##ll##llllllll
+lllll#l#l#l##l#l#ll#ll#lllllll
+lllll#l#l#l#ll#l#ll####lllllll
+llllll#l#ll#ll#l#ll#llllllllll
+llllll#l#ll#ll#ll#ll###lllllll
+llllllllllllllllllllllllllllll
+llllllllllllllllllllllllllllll
+lllllllllll
+llllllllllllllllll
+lllllllllll
+lllllllllllll
+lllllllllll
+llllllllllll
+lllllllllll
+llllllllllll
+lllllllllll
+llllllllllll
+llllllllllll
+lllllllllllll
+llllllllllllllllllllllllllllll
+llllllllllllllllllllllllllllll
+llllllllllllllll
+lllllllllllll
+lllllllllllllllllllllll
+llllll
+lllll
+llllll
+llllll
+llllll
+lllll
+lllllllllll
+lllllllllllllll
+llllllllllll
+llllllllllllllll
+llllllllllllllllllllllllllllll
+Watlow Write.vi
+fffff3ff
+f3ff33f3
+3ff3f33f
+33f33333
+""")))UUUMMMBBB999
+?IDATx
+fffff3ff
+f3ff33f3
+3ff3f33f
+33f33333
+""")))UUUMMMBBB999
+AIDATx
+fffff3ff
+f3ff33f3
+3ff3f33f
+33f33333
+""")))UUUMMMBBB999
+?IDATx
+fffff3ff
+f3ff33f3
+3ff3f33f
+33f33333
+""")))UUUMMMBBB999
+AIDATx
+classString
+?*::(INSTR|SOCKET)
+displayFilter
+typeClass
+Instr
+Hy,B(
+Cg|4:
+:E[-VE
+h!eE;#
+Q3Uc!
+MDzVMH
+FRj5?!5]
+cM*d!
+L`[A]
+Bg"r9
+[]rHX
+4nxK'g
+z5@MC
+MrwlM
+t_$<(l
+e=-=z
+M\]Xn"\aq
+^`f"4
+!)wf"
+Watlow Write.vi
+%VISA Configure Serial Port (Instr).viPTH0
+<vilib>
+Instr
+_visa.llb%VISA Configure Serial Port (Instr).vi
+VISA Configure Serial Port
+<vilib>
+Instr
+_visa.llb
+VISA Configure Serial Port
+Calc CRC-sub.viPTH0
+Calc CRC-sub.vi
+visarc
+Program Files (x86)
+National Instruments
+LabVIEW 2009
+resource
+visarc
+visarc
+Instr
+Instance
+$R?@1t;
+ 4\BC
+`:'63ei
+Wt~!u
+>K7I|
+Bx#FI
+@C{`ZKk
+:GcEJ
+@#8KB
+k@c>ZBI
+B4&K|
+-(V_-
+FpQh:
+'?Q<y4
+-kOpO
+g4wN8
+~ !{i
+MV)&}
+,v_82
+ya{SK3_C
+V-|vL
+uurPo
+PC{C`|
+o%;{[
+~Zhc#v
+lC(2R
+M.:V?8
+]UYZmU
+CX\~(8R
+cYCkS
+hlvMnh
+7@VwG
+"+EpZbet}l
+#F(t6`
+?>@~g'
+NI.LV.ALL.VILastSavedTarget
+NI.LV.ALL.goodSyntaxTargets
+4dwf3
+!0XL!m
+q`s<U,#
+=8qh?
+8$.pk
+mZA`5
+>Puk5
+Tg{GN
+mhT=lr
+:{IDI
+mx;%~
+Ls96Y
+Segoe UI
+Segoe UI
+Segoe UI
+LVINLBVW
+"VINS
+ DFDS
+4LIds
+HVICD
+\vers
+pSCSR
+$STR 
+tFPHb
+(VITS
+<DTHP
+PMUID
+dHIST
+xVCTP
+Watlow Write.vi

@@ -1,0 +1,67 @@
+LVINLBVW
+convert_null.vi
+Database Variant To Data.xnode
+<vilib>
+addons
+database
+_DB Variant To Data
+Database Variant To Data.xnode
+L~[Wg
+convert_null.vi
+~>jU>
+ -}Z=
+s/IKn+
+JqEN/N
+HQWPN
+.Dknt7*
+`&_Wq
+vConverts a NULL database value (in a numeric field) to a desired default value.  If vi not used, will convert to zero.
+convert_null.vi
+mIDATx
+sIDATx
+IDATx
+.E$w1
+A%S>GC
+Sl*+++8
+62@[i0L
+.5,)D
+convert_null.vi
+Database Variant To Data.xnode
+<vilib>
+addons
+database
+_DB Variant To Data
+Database Variant To Data.xnode
+:5$!zF
+6F"Q-
+l&LKzx
+71C{d
+fD~]F
+fRCmV
+cib<7
+S7hO"
+"MFY]w_O
+]"5o?o
+<vu8/VL
+g Sj8}_
+]Cbv}
+!Biey
+hp14 ,
+SC]+Vl
+%o&ud
+[G^N^
+[,.9+X
+Tahoma
+Tahoma
+Tahoma
+LVINLBVW
+xBDPW
+,SCSR
+@DLDR
+TFPTD
+hCPMp
+|STRG
+DFPSE
+XLIbd
+lBDHc
+convert_null.vi

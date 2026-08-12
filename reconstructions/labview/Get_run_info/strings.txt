@@ -1,0 +1,259 @@
+LVINLBVW
+Get_run_info.vi
+get_usernames.vi
+Database
+get_usernames.vi
+get_batchID.vi
+Database
+get_batchID.vi
+GmailLV80.vi
+GmailLV80.vi
+ *@BlX
+s,"S"gVE
+m>[sj
+d3Jlf
+n#0yUj
+Get_run_info.vi
+GmailLV80.vi
+get_usernames.vi
+get_batchID.vi
+TXVffVT^
+7d-q$y
+$]u$y
+.fin<
+b{&%,6$dQ
+(P&cP
++C0iP3
+///'%
+judsv
+!\'yMQ
+PaPbq
+U3kb}m>
+\={0p
+2JR<.Mt
+v&uRF
+G@U7yC
+rg"7f
+Y3r3-=
+66hkc
+66kk#t
+dD!}N
+D.Qz0
+bGk[lm"
+Ohl]z
+Ln38Bp
+tJSOI
+'SCaN3
+sC3R>
+ig.` Q6
+C2}*e
+\N@1y
+( Nt#R
+:7j'I3-
+WpzFuY
+SsgiLUut
+u!p47
+|<R08!
+gD8o.
+(Q<#J4
+t(II>
+BV~ d
+]8^:/
+<+)*}
+RPEA5
+w@'p''U
+4~i*w
+N`:rg
+mnw&!w
+mnw&#w
+d8SA3
+2kWCJ
+;@V\C
+@V2dko
+*"}^f
+/fsNW
+Z@:9r
+& OrdF
+[Gw!7
+U@Zy;
+lf6QW
+uK#k1K
+6#Lzo
+A#LzK
+|p9zX
+P G+d|
+-)B43]
+jRP%+8b
+*hq)h!
+a -Bi
+*hq)h!
+*RpPVp
+fP};f
+{(_t>
+9?7r~n
+Oi&yt3
+weZeI
+GGz;c
+Displays window to gather information about user and run conditions.
+Output is bundled cluster with:
+1) Use DB boolean
+2) DB User ID
+3) non-DB User Name
+4) Field on/off boolean
+5) Field magnitude
+6) Set point
+7) Soak time
+8) Atmosphere flag
+9) Note
+Get_run_info.vi
+?rlKN
+Qc5QkK
+hb`pj
+:j2Jr
+mrGw(
+/K15.
+\9blc
+W_RZZ
+G$0hw@
+Gh-Z2L
+rkl*r?l
+Bn(4-
+CXQ]B
+2n:hP
+;y'J|&MMyc4$E
+hfv4!
+t4a<`}
+ROnhG
+0%e'rn(-;
+9?=Bv
+d'rn,
+]*v"g
+v"'?rv"
+U0vTL
+|IGrA
+MmAM,
+iRj2a
+q8g:uqQ
+$(S?Ik
+Y04nD
+2B0}&Z[h;?
+rb 0Mk
+3U882
+c,8T,
+Get_run_info.vi
+get_usernames.vi
+Database
+get_usernames.vi
+,PTH0
+get_batchID.vi
+Database
+get_batchID.vi
+GPTH0
+GmailLV80.vi
+GmailLV80.vi
+7PTH0
+=$X0tW
+kZaIe
+6$p$5
+a:y{B
+a8\VT^.b}g
+oBH{&
+\[c@>
+fwF0?
+xj`wy
+!-?h }
+nW9%fvo
+i8_E*7
+h$hsT
+wY^,b
+0=eX;t c
+VhM(}]
+~24?"
+f&oLz
+9S4'R^
+x;BSb
+y'mO4B
+M<YG$
+2gT@p
+ZRY^A+
+AkXj;
+$6ZFp
+"m.O8
+"F{;O{
+!9;G|7
+MSs`$e
+D%|^pIq
+c&LYTT
+g,FD>
+r5xh\
+P\Bl2
+ZXA'El"VY
+pp=b)2B
+?xzU#
+F?Al(
+<f&C*W
+'p&/%
+S9dJLs
+hWhtk
+-YVTVXQYV
+Mu]nn
+xaIy\
+kWJsL,
+mk#9T
+3O#+b
+#f9h&
+EKG&Z
+uEJX\
+S^fc|
+M(\{B7>g
+9b|>_
+rz|RY
+$O\c=
+?SE]D
+86K'x6K
+^76K;D6
+?`\54Ovx
+]?,_B
+%7Epil5
+4#zT8
+s &]n
+mj-0M
+Axq5f
+Dz0b;
+qtf<;
+%fMX\G
+o_7>kP
+^D7JV
+-p;+[
+z)Lx+
+F]gT{
+3WpXDW
+YGFuTe
+jTYOF
+/CMmNv
+KETJD
+ySqx#
+96?$}
+$96).
+ZIuLK
+jqi!J
+J\Q<ky
+' slS)
+Segoe UI
+Segoe UI
+Segoe UI
+LVINLBVW
+"LVSR
+ VICD
+4vers
+HSCSR
+\DLDR
+pFPTD
+$FPSE
+8IPSR
+LCNST
+`LPIN
+tNUID
+(VCTP
+<FTAB
+Get_run_info.vi

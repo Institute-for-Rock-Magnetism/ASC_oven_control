@@ -1,0 +1,434 @@
+LVINLBVW
+.Instance           4 19Saved   Wetlow_v1.2 .vi
+.Instance           9 19Saved   Wetlow_v1.2 .vi
+2SRSRC
+LVINLBVW
+thermal1.0.vi
+Instance
+LVINEthermal1.0.vi:Instance:Instance           4 19Saved   Wetlow_v1.2 .vi
+subElapsedTime.viPTH0
+<vilib>
+express
+express execution control
+ElapsedTimeBlock.llb
+subElapsedTime.vi
+VIDSEthermal1.0.vi:Instance:Instance           4 19Saved   Wetlow_v1.2 .vi
+subElapsedTime.viPTH0
+o1W@a
+XA"_"|
+O;z' 
+0V9mY
+({zP_$b
+O2~"n
+2{YzF
+4VZp;
+subElapsedTime.vi
+Keeps track of time by indicating when a certain amount of time has elapsed. The elapsed time is the present time minus the start time that you specify.
+--------------------
+This Express VI is configured as follows:
+Time Target: 1 s
+Auto Reset: Off
+$PTH0
+<helpdir>
+lvexpress.chm
+Elapsed_Time.html
+ffffffffffffff
+ffffffffffffffo
+Elapsed Time2
+FPHPEthermal1.0.vi:Instance:Instance           4 19Saved   Wetlow_v1.2 .vi
+mIDATx
+sIDATx
+mIDATx
+sIDATx
+t3s3o
+T}hP>
+!#kB:
+AeX;K&
+9l>Jm
+MSwZyBx
+SO&=hj^
+l ?$W
+:}MV7a=
+BDHPEthermal1.0.vi:Instance:Instance           4 19Saved   Wetlow_v1.2 .vi
+subElapsedTime.viPTH0
+<vilib>
+express
+express execution control
+ElapsedTimeBlock.llb
+subElapsedTime.vi
+woN47
+qUUm7
+^W~)g
+_Wizard
+<vilib>
+express
+express execution control
+ElapsedTimeConfig.llb
+Configure Elapsed Time.vi
+_OriginalInstancePath
+<vilib>
+express
+express execution control
+ElapsedTimeBlock.llb
+Ex_Inst_Elapsed Time.vi
+Localized
+TagName
+Localize
+NI.LV.ALL.VILastSavedTarget
+NI.LV.ALL.goodSyntaxTargets
+[ov-?
+L840BU
+#SedC
+7!zmX
+dAxQ@
+clny?
+<QSgo
+VBy*}[
+<=cH@
+m~"uz
+Tahoma
+Tahoma
+Tahoma
+LVINLBVW
+#LIBN
+,DFDS
+@LIds
+TVICD
+hvers
+|SCSR
+0icl8
+DTITL
+XDTHP
+lLIfp
+ BDSE
+4VITS
+HMUID
+\HIST
+pPRT 
+.Instance           4 19Saved   Wetlow_v1.2 .vi
+2SRSRC
+LVINLBVW
+thermal1.0.vi
+Instance
+LVINEthermal1.0.vi:Instance:Instance           9 19Saved   Wetlow_v1.2 .vi
+subElapsedTime.viPTH0
+<vilib>
+express
+express execution control
+ElapsedTimeBlock.llb
+subElapsedTime.vi
+VIDSEthermal1.0.vi:Instance:Instance           9 19Saved   Wetlow_v1.2 .vi
+subElapsedTime.viPTH0
+o1W@a
+XA"_"|
+O;z' 
+0V9mY
+({zP_$b
+O2~"n
+2{YzF
+4VZp;
+subElapsedTime.vi
+Keeps track of time by indicating when a certain amount of time has elapsed. The elapsed time is the present time minus the start time that you specify.
+--------------------
+This Express VI is configured as follows:
+Time Target: 1 s
+Auto Reset: Off
+$PTH0
+<helpdir>
+lvexpress.chm
+Elapsed_Time.html
+ffffffffffffff
+ffffffffffffffo
+Elapsed Time
+FPHPEthermal1.0.vi:Instance:Instance           9 19Saved   Wetlow_v1.2 .vi
+mIDATx
+sIDATx
+mIDATx
+sIDATx
+t3s3o
+T}hP>
+!#kB:
+AeX;K&
+9l>Jm
+MSwZyBx
+SO&=hj^
+l ?$W
+:}MV7a=
+BDHPEthermal1.0.vi:Instance:Instance           9 19Saved   Wetlow_v1.2 .vi
+subElapsedTime.viPTH0
+<vilib>
+express
+express execution control
+ElapsedTimeBlock.llb
+subElapsedTime.vi
+woN47
+qUUm7
+^W~)g
+_Wizard
+<vilib>
+express
+express execution control
+ElapsedTimeConfig.llb
+Configure Elapsed Time.vi
+_OriginalInstancePath
+<vilib>
+express
+express execution control
+ElapsedTimeBlock.llb
+Ex_Inst_Elapsed Time.vi
+Localized
+TagName
+Localize
+NI.LV.ALL.VILastSavedTarget
+NI.LV.ALL.goodSyntaxTargets
+[ov-?
+L840BU
+#SedC
+7!zmX
+dAxQ@
+clny?
+<QSgo
+VBy*}[
+<=cH@
+m~"uz
+Tahoma
+Tahoma
+Tahoma
+LVINLBVW
+#LIBN
+,DFDS
+@LIds
+TVICD
+hvers
+|SCSR
+0icl8
+DTITL
+XDTHP
+lLIfp
+ BDSE
+4VITS
+HMUID
+\HIST
+pPRT 
+.Instance           9 19Saved   Wetlow_v1.2 .vi
+thermal1.0.vi
+Write Characters To File.viPTH0
+<vilib>
+Utility
+file.llb
+Write Characters To File.vi
+Read From I16 File.viPTH0
+<vilib>
+Utility
+file.llb
+Read From I16 File.vi
+Watlow Write.viPTH0
+Watlow Write.vi
+Serial Port Init.viPTH0
+<vilib>
+Instr
+Serial.llb
+Serial Port Init.vi
+Simple Error Handler.viPTH0
+<vilib>
+Utility
+error.llb
+Simple Error Handler.vi
+Write-to-ARM.viPTH0
+Write-to-ARM.vi
+Instance.Instance           9 19Saved   Wetlow_v1.2 .viPTH0
+.Instance           9 19Saved   Wetlow_v1.2 .vi
+Watlow Read.vi
+Watlow Read.vi
+Instance.Instance           4 19Saved   Wetlow_v1.2 .viPTH0
+.Instance           4 19Saved   Wetlow_v1.2 .vi
+SsXS-a
+b+Ojm
+`2p#0
+l7RRw
+thermal1.0.vi
+Write-to-ARM.viPTH0
+Write Characters To File.viPTH0
+Watlow Write.viPTH0
+Watlow Read.vi
+Instance.Instance           9 19Saved   Wetlow_v1.2 .viPTH0
+Instance.Instance           4 19Saved   Wetlow_v1.2 .viPTH0
+Simple Error Handler.viPTH0
+Serial Port Init.viPTH0
+Read From I16 File.viPTH0
+1W~M?~
+^j$)i
+sYK-T
+;2,44#K
+oqIE-
+j}T34v
+p&FKH
+szB6&
+Du4lw
+OvUrX
+qm0Hfg
+S!!XH
+IM2Ym
+?@Xx*\Y
+P=LCg
+_\B7v
+*FFMd4
+A'<;@ @>
+1jU~{
+C?|/@
+3g/x=
+CCt2A
+ cT2d:'
+3}VaB^
+)B3E9G
+9MIw&q
+8A6*d#
+1=*gB.U
+C!71=
+$oO(o
+bPc_(
+pjslB
+S[1uw
+4t)Ym,
+,L;3k
+2b3&e,
+Serial Port Init.vi
+++++++++++++++++++++
+++++++++++++++++++++
+++++++++++++++++++++
+++++++++++++++++++++
+++++++++++++++++
+++++++++++++++++
+thermal1.0.vi
+bP'~i,
+^sk8:
+2oic-
+K;|V&
+FCfuz
+>.:Y`
+o]xlhh,
+v2 ]]
+ov|_4Yhe
+lgS\\^
+Mq9z1v6
+i=PdY
+o$]f1X~;4i
+T\I0s-2
+)1BS2.
+\y_YR
+Z}k@K
+>yBKB
+jO v^
+G9R!h
+JE{Uk
+thermal1.0.vi
+Watlow Write.viPTH0
+Watlow Write.vi
+Watlow Read.vi
+Watlow Read.vi
+:PTH0
+Write Characters To File.viPTH0
+<vilib>
+Utility
+file.llb
+Write Characters To File.vi
+Instance.Instance           9 19Saved   Wetlow_v1.2 .viPTH0
+.Instance           9 19Saved   Wetlow_v1.2 .vi
+MPTH0
+Instance.Instance           4 19Saved   Wetlow_v1.2 .viPTH0
+.Instance           4 19Saved   Wetlow_v1.2 .vi
+Simple Error Handler.viPTH0
+<vilib>
+Utility
+error.llb
+Simple Error Handler.vi
+Serial Port Init.viPTH0
+<vilib>
+Instr
+Serial.llb
+Serial Port Init.vi
+$PTH0
+Write-to-ARM.viPTH0
+Write-to-ARM.vi
+RPTH0
+Read From I16 File.viPTH0
+<vilib>
+Utility
+file.llb
+Read From I16 File.vi
+4PTH0
+f_`ES]c`q
+,Jl*B
+mry|K
+Q{6J`
+Y4fZ]
+F}>bk-
+54Rkh
+GKwPx
+hAXG=b
+TmAVj
+4lDO6
+.J]T41q
+o{8#zx|
+j]u5.\e
+~eCcs
+SU><Z
+"}b)6
+&xxfK
+aG2iL
+mgt'q
+'O~0E
+q#G9<U
+kuz>Y
+*bE<9=
+ ,G#b
+G=b>"
+#<ys}~
+ I`QKxL+K
+&LH?V
+[?|Xe
+TF>('YclO
+TXt=4I
+-fGJR
+>Wlz~%^+
+R2k]c
+3I z&
+DX{!?m
+9-8J;4
+p9]Do
+~oG;-
+Aw*?b
+GK`0}
+8B82D
+O ]ZH
+/Xfm}I
+@jTHc-
+CvHW6
+`sRG@>
+ gs=`
+T6!6W
+Y8(iY 
+NI.LV.ALL.VILastSavedTarget
+NI.LV.ALL.goodSyntaxTargets
+V6kZE
+0cV.U
+JCT?ZJ
+j4D;B
+PWV,O
+zz{{V
+jWg(^
+t|QlX)
+'z$?5
+Tahoma
+Tahoma
+Tahoma
+LVINLBVW
+xLVSR
+,LIds
+@VICD
+Tvers
+hSCSR
+|DLDR
+ VCTP
+4FTAB
+thermal1.0.vi

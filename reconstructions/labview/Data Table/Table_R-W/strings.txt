@@ -1,0 +1,784 @@
+LVINLBVW
+Table R-W.vi
+Read From I16 File.vi
+mark after read (bytes)
+1D array
+2D array
+'new file path (Not A Path if cancelled)
+start of read offset (bytes:0)
+,2D number of columns/1D count (all as 1D:-1)
+2D number of rows
+file path (dialog if empty)PTH0
+<vilib>
+Utility
+file.llb
+Read From I16 File.vi
+Write To I16 File.vi
+'new file path (Not A Path if cancelled)
+append to file? (new file:F)
+1D array
+2D array
+file path (dialog if empty)PTH0
+<vilib>
+Utility
+file.llb
+Write To I16 File.vi
+SP 1-1
+Pb 1-1
+It 1-1
+SP 1-3
+De 1-1
+SP 1-2
+Pb 1-2
+It 1-2
+De 1-2
+Pb 1-3
+It 1-3
+De 1-3
+SP 2-1
+Pb 2-1
+It 2-1
+De 2-1
+SP 3-1
+Pb 3-1
+It 3-1
+SP 1-4
+De 3-1
+SP  2-3
+Pb  2-3
+Pb 1-4
+It  2-3
+SP 2-2
+De 2-3
+SP 3-3
+Pb 2-2
+It 2-2
+De 2-2
+SP 3-2
+Pb 3-2
+It 3-2
+De 3-2
+Pb 3-3
+It 3-3
+De 3-3
+It 1-4
+De 1-4
+SP  2-4
+Pb  2-4
+It  2-4
+De 2-4
+SP 3-4
+Pb 3-4
+It 3-4
+De 3-4
+SP 1-5
+Pb 1-5
+It 1-5
+De 1-5
+SP  2-5
+Pb  2-5
+It  2-5
+De 2-5
+SP 3-5
+Pb 3-5
+It 3-5
+De 3-5
+,2D number of columns/1D count (all as 1D:-1)
+index (row)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+index (row)
+index (row)
+2D number of rows
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+disabled index (col)
+disabled index (col)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+index (row)
+index (row)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+disabled index (col)
+disabled index (col)
+index (row)
+disabled index (col)
+index (row)
+index (row)
+index (row)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+disabled index (col)
+disabled index (col)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+index (row)
+index (row)
+disabled index (col)
+disabled index (col)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+disabled index (col)
+2D array
+'new file path (Not A Path if cancelled)
+SP 1-5
+Pb 1-5
+It 1-5
+De 1-5
+SP  2-5
+Pb  2-5
+It  2-5
+De 2-5
+SP 3-5
+Pb 3-5
+It 3-5
+De 3-5
+SP 1-4
+Pb 1-4
+It 1-4
+De 1-4
+SP  2-4
+Pb  2-4
+It  2-4
+De 2-4
+SP 3-4
+Pb 3-4
+It 3-4
+De 3-4
+SP 1-3
+Pb 1-3
+It 1-3
+De 1-3
+SP  2-3
+Pb  2-3
+It  2-3
+De 2-3
+SP 3-3
+Pb 3-3
+It 3-3
+De 3-3
+SP 1-2
+Pb 1-2
+It 1-2
+De 1-2
+SP 2-2
+Pb 2-2
+It 2-2
+De 2-2
+SP 3-2
+Pb 3-2
+It 3-2
+De 3-2
+SP 1-1
+Pb 1-1
+It 1-1
+De 1-1
+SP 2-1
+Pb 2-1
+It 2-1
+De 2-1
+SP 3-1
+Pb 3-1
+It 3-1
+De 3-1
+It 3-4
+Pb 3-4
+SP 3-4
+De 2-4
+It  2-4
+Pb  2-4
+SP  2-4
+De 1-4
+It 1-4
+Pb 1-4
+De 3-4
+SP 1-4
+De 3-3
+Pb 3-3
+SP 3-3
+De 2-3
+It  2-3
+Pb  2-3
+SP  2-3
+It 3-3
+SP 3-2
+It 3-2
+Pb 3-2
+De 2-2
+It 2-2
+Pb 2-2
+SP 2-2
+De 3-2
+SP 1-3
+Pb 1-3
+It 1-3
+De 1-3
+De 3-1
+It 3-1
+Pb 3-1
+SP 3-1
+De 2-1
+It 2-1
+Pb 2-1
+SP 2-1
+SP 1-1
+De 1-2
+It 1-2
+Pb 1-2
+SP 1-2
+De 1-1
+It 1-1
+Pb 1-1
+SP 1-5
+De 3-5
+It 3-5
+Pb 3-5
+SP 3-5
+De 2-5
+It  2-5
+Pb  2-5
+SP  2-5
+De 1-5
+It 1-5
+Pb 1-5
+2D array
+,2D number of columns/1D count (all as 1D:-1)
+2D number of rows
+file path (dialog if empty)
+MacintoshHD
+Users
+hagai
+Lab-view lab
+Wetlow
+Data Arrey
+Table R-W.vi
+Write To I16 File.vi
+Read From I16 File.vi
+xPOWX
+8:" $
+<:" 8
+$:" L
+0ako@
+0b1tH
+0`c}8N
+0`c}lN
+7.0b71
+Oldest compatible LabVIEW.
+SP 1-1
+Pb 1-1
+It 1-1
+De 1-1
+SP 1-2
+Pb 1-2
+It 1-2
+De 1-2
+SP 1-3
+Pb 1-3
+It 1-3
+De 1-3
+SP 2-1
+Pb 2-1
+It 2-1
+De 2-1
+SP 3-1
+Pb 3-1
+It 3-1
+De 3-1
+SP 2-2
+Pb 2-2
+It 2-2
+De 2-2
+SP 3-2
+Pb 3-2
+It 3-2
+De 3-2
+SP  2-3
+Pb  2-3
+It  2-3
+De 2-3
+SP 3-3
+Pb 3-3
+It 3-3
+De 3-3
+SP 1-4
+Pb 1-4
+It 1-4
+De 1-4
+SP  2-4
+Pb  2-4
+It  2-4
+De 2-4
+SP 3-4
+Pb 3-4
+It 3-4
+De 3-4
+SP 1-5
+Pb 1-5
+It 1-5
+De 1-5
+SP  2-5
+Pb  2-5
+It  2-5
+De 2-5
+SP 3-5
+Pb 3-5
+It 3-5
+De 3-5
+NI.LV.ALL.VILastSavedTarget
+NI.LV.ALL.goodSyntaxTargets
+++++++++++++++++++++
+++++++++++++++++++++
+++++++++++++++++++++
+++++++++++++++++++++
+++++++++++++++++
+++++++++++++++++
+SP 1-1
+Pb 1-1
+It 1-1
+De 1-1
+SP 1-2
+Pb 1-2
+It 1-2
+De 1-2
+SP 1-3
+Pb 1-3
+It 1-3
+De 1-3
+mark after read (bytes)
+1D array
+2D array
+'new file path (Not A Path if cancelled)
+start of read offset (bytes:0)
+,2D number of columns/1D count (all as 1D:-1)
+2D number of rows
+file path (dialog if empty)
+file path (dialog if empty)
+2D number of rows
+,2D number of columns/1D count (all as 1D:-1)
+start of read offset (bytes:0)
+'new file path (Not A Path if cancelled)
+2D array
+mark after read (bytes)
+1D array
+append to file? (new file:F)
+disabled index (col)
+index (row)
+De 3-4
+'new file path (Not A Path if cancelled)
+append to file? (new file:F)
+1D array
+2D array
+file path (dialog if empty)
+SP 2-1
+Pb 2-1
+It 2-1
+De 2-1
+SP 3-1
+Pb 3-1
+It 3-1
+De 3-1
+De 2-2
+It 2-2
+Pb 2-2
+SP 2-2
+SP 3-2
+Pb 3-2
+It 3-2
+De 3-2
+SP  2-3
+Pb  2-3
+It  2-3
+De 2-3
+SP 3-3
+Pb 3-3
+It 3-3
+De 3-3
+Pb 1-4
+SP 1-4
+It 1-4
+De 1-4
+SP  2-4
+Pb  2-4
+It  2-4
+De 2-4
+SP 3-4
+Pb 3-4
+It 3-4
+Pb 1-5
+SP 1-5
+It 1-5
+De 1-5
+SP  2-5
+Pb  2-5
+It  2-5
+De 2-5
+SP 3-5
+Pb 3-5
+It 3-5
+De 3-5
+SP 1-1
+SP 1-2
+Pb 1-1
+It 1-1
+SP 1-3
+De 1-1
+Pb 1-2
+It 1-2
+De 1-2
+Pb 1-3
+It 1-3
+De 1-3
+SP 2-1
+Pb 2-1
+It 2-1
+De 2-1
+SP 2-2
+SP 3-1
+SP 1-4
+Pb 3-1
+It 3-1
+De 3-1
+SP  2-3
+Pb 1-4
+It  2-3
+Pb  2-3
+It 1-4
+De 2-3
+SP 3-3
+Pb 2-2
+It 2-2
+De 2-2
+SP 3-2
+It  2-4
+Pb 3-2
+It 3-2
+De 3-2
+Pb 3-3
+It 3-3
+De 3-3
+It 3-4
+De 1-4
+SP  2-4
+Pb  2-4
+De 2-4
+SP 3-4
+Pb 3-4
+De 3-4
+It (Table)=It*100
+0-249
+De (Table)=De*100
+inner
+sample zone
+250-349
+outer
+350-449
+450-649
+SP 1-5
+It 3-5
+Pb 1-5
+It 1-5
+De 1-5
+It  2-5
+SP  2-5
+Pb  2-5
+De 2-5
+SP 3-5
+Pb 3-5
+6create a  table with temperature controlers parameters
+De 3-5
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+,2D number of columns/1D count (all as 1D:-1)
+Table R-W.vi
+Table R-W.vi
+index (row)
+Table R-W.vi
+disabled index (col)
+Table R-W.vi
+index (row)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+index (row)
+Table R-W.vi
+disabled index (col)
+disabled index (col)
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+0-249
+250-349
+Table R-W.vi
+Write To I16 File.vi
+Read From I16 File.vi
+350-449
+450-649
+index (row)
+2D number of rows
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+index (row)
+index (row)
+index (row)
+disabled index (col)
+disabled index (col)
+disabled index (col)
+Table R-W.vi
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+index (row)
+index (row)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+disabled index (col)
+disabled index (col)
+index (row)
+index (row)
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+index (row)
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+disabled index (col)
+disabled index (col)
+disabled index (col)
+index (row)
+index (row)
+index (row)
+index (row)
+disabled index (col)
+Table R-W.vi
+disabled index (col)
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+index (row)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+index (row)
+disabled index (col)
+disabled index (col)
+index (row)
+index (row)
+index (row)
+disabled index (col)
+disabled index (col)
+disabled index (col)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+index (row)
+index (row)
+disabled index (col)
+disabled index (col)
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Table R-W.vi
+Save to File
+Table R-W.vi
+Table R-W.vi
+Read From I16 File.vi
+Write To I16 File.vi
+Lucida Grande
+Lucida Grande
+Lucida Grande
+0RSRC
+LVINLBVW
+<LVSR
+PBDPW
+dLIvi
+xCPTM
+,VITS
+@ICON
+Ticl8
+hDTHP
+|TRec
+*hCPST
+Table R-W.vi
