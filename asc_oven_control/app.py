@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 from PySide6.QtCore import QStandardPaths
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from asc_oven_control.infrastructure.config import ApplicationConfig, ConfigValidationError
@@ -21,6 +22,12 @@ from asc_oven_control.ui.theme import APP_STYLE
 
 APP_NAME = "ASC Oven Control"
 APP_VERSION = "0.1.0"
+
+
+def resource_path(relative_path: str) -> Path:
+    """Resolve project assets in source and PyInstaller bundles."""
+    bundle_root = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
+    return bundle_root / relative_path
 
 
 def app_home() -> Path:
@@ -60,6 +67,8 @@ def create_application(argv: list[str] | None = None) -> tuple[QApplication, Mai
     app = QApplication(argv or sys.argv)
     app.setApplicationName(APP_NAME)
     app.setApplicationVersion(APP_VERSION)
+    app.setOrganizationName("ASC Laboratory")
+    app.setWindowIcon(QIcon(str(resource_path("assets/asc_oven_icon.png"))))
     app.setStyle("Fusion")
     app.setStyleSheet(APP_STYLE)
 

@@ -28,6 +28,17 @@ physical serial port. Runtime files (configuration and the run database)
 live in the platform application-data directory; set `ASC_OVEN_HOME` to
 use a specific runtime directory.
 
+## Build the macOS application
+
+```bash
+pip install -e '.[build]'
+pyinstaller ASC-Oven-Control.spec --noconfirm --clean
+```
+
+The native bundle is written to `dist/ASC Oven Control.app`. The build
+uses the multi-resolution icon in `assets/ASC-Oven.icns` and includes the
+PNG master for Qt window metadata.
+
 ## Features
 
 - Four-page interface: **Setup**, **Live control**, **Run data**, and

@@ -10,9 +10,12 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 dependencies = [
-    "PySide6>=6.7,<7",
+    "PySide6-Essentials>=6.7,<7",
     "pyserial>=3.5,<4",
 ]
+
+[project.optional-dependencies]
+build = ["PyInstaller>=6.10,<7"]
 
 [project.scripts]
 asc-oven-control = "asc_oven_control.app:main"
