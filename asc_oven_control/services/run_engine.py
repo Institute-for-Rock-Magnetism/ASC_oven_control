@@ -88,6 +88,7 @@ class _RunWorker(QObject):
         self.field_amplitude_uT = profile.field_amplitude_uT
         self.elapsed_sec = 0.0
         self.tripped = ""
+        self.last_decision = None
         self._pause = threading.Event()
         self._pause.set()
         self._abort = threading.Event()
@@ -187,6 +188,7 @@ class _RunWorker(QObject):
         reading = self.backend.read()
         if advance_control:
             decision = self.coordinator.step(reading.zones_c, dt)
+            self.last_decision = decision
             self.backend.write_setpoints(decision.zone_setpoints_c)
             if decision.phase != self.detail_phase:
                 self.detail_phase = decision.phase
@@ -239,6 +241,8 @@ class _RunWorker(QObject):
                 "soak_elapsed_s": self.coordinator.soak_elapsed_s,
                 "out_of_band_s": self.coordinator.out_of_band_s,
                 "soak_band_c": self.coordinator.settings.soak_band_c,
+                "center_comp_c": self.coordinator.center_comp_c,
+                "zone_targets": tuple(self.profile.target_setpoint_c + o for o in self.coordinator.offsets()),
                 "alarm": alarm,
                 "field_enabled": self.field_enabled,
                 "field_amplitude_uT": self.field_amplitude_uT,

@@ -202,6 +202,7 @@ LIVE_CSV_COLUMNS = (
     "zone1_power_pct", "zone2_power_pct", "zone3_power_pct",
     "ramp_setpoint_c", "target_c", "gradient_c",
     "phase", "control_phase", "soak_elapsed_s", "out_of_band_s", "alarm",
+    "zone1_target_c", "zone2_target_c", "zone3_target_c", "center_comp_c",
 )
 
 
@@ -243,6 +244,8 @@ class LiveCsvLog:
                 f"{snapshot.get('soak_elapsed_s', 0.0):.0f}",
                 f"{snapshot.get('out_of_band_s', 0.0):.0f}",
                 snapshot.get("alarm", ""),
+                *(f"{t:.1f}" for t in snapshot.get("zone_targets", (snapshot["target_setpoint_c"],) * 3)),
+                f"{snapshot.get('center_comp_c', 0.0):.2f}",
             )
         )
         self._handle.flush()
@@ -250,6 +253,53 @@ class LiveCsvLog:
     def close(self) -> None:
         if not self._handle.closed:
             self._handle.close()
+
+
+IDLE_CSV_COLUMNS = (
+    "timestamp", "zone1_c", "zone2_c", "zone3_c",
+    "zone1_sp_c", "zone2_sp_c", "zone3_sp_c",
+    "zone1_power_pct", "zone2_power_pct", "zone3_power_pct",
+    "zone1_remote", "zone2_remote", "zone3_remote", "alarm",
+)
+
+
+class IdleCsvLog:
+    """Daily file of the idle monitor's readings (between runs, cool-downs)."""
+
+    def __init__(self, directory: Path | str) -> None:
+        self.directory = Path(directory)
+        self._day = ""
+        self._handle = None
+        self._writer = None
+
+    def write(self, reading, now: float) -> None:
+        day = datetime.fromtimestamp(now).strftime("%Y%m%d")
+        if day != self._day:
+            self.close()
+            self.directory.mkdir(parents=True, exist_ok=True)
+            path = self.directory / f"idle-{day}.csv"
+            new = not path.exists()
+            self._handle = open(path, "a", newline="", encoding="utf-8")
+            self._writer = csv.writer(self._handle)
+            if new:
+                self._writer.writerow(IDLE_CSV_COLUMNS)
+            self._day = day
+        self._writer.writerow(
+            (
+                datetime.fromtimestamp(now).isoformat(timespec="seconds"),
+                *reading.zones_c,
+                *reading.setpoints_c,
+                *("" if p is None else f"{p:.1f}" for p in reading.power_pct),
+                *(int(r) for r in reading.remote),
+                reading.alarms[0] if reading.alarms else "",
+            )
+        )
+        self._handle.flush()
+
+    def close(self) -> None:
+        if self._handle is not None and not self._handle.closed:
+            self._handle.close()
+        self._handle = None
 
 
 def atomic_write_json(path: Path | str, data: dict[str, Any], create_backup: bool = True) -> None:

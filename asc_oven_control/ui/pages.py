@@ -205,6 +205,21 @@ class SetupPage(QWidget):
             "soak time; time spent out of band is logged and shown."
         )
         gradient_form.addRow("Soak clock", self.strict_soak_check)
+        comp_row = QHBoxLayout()
+        self.comp_rate_spin = QDoubleSpinBox()
+        self.comp_rate_spin.setRange(0.0, 2.0)
+        self.comp_rate_spin.setDecimals(2)
+        self.comp_rate_spin.setSingleStep(0.05)
+        self.comp_rate_spin.setValue(defaults.center_comp_rate_per_min)
+        self.comp_rate_spin.setSuffix(" °C/min per °C")
+        self.comp_rate_spin.setToolTip(
+            "While Zone 2 (middle) is above target, Zones 1 and 3 are lowered at this rate per "
+            "degree of Zone 2 excess; 0 disables. Only ever lowers the outer zones."
+        )
+        self.comp_limit_spin = self._temperature_spin(defaults.center_comp_limit_c, 0.0, 200.0, " °C max")
+        comp_row.addWidget(self.comp_rate_spin)
+        comp_row.addWidget(self.comp_limit_spin)
+        gradient_form.addRow("Middle-zone comp.", comp_row)
         gradient.body.addLayout(gradient_form)
         grid.addWidget(gradient, 3, 0)
         self.load_form_state()
@@ -243,6 +258,8 @@ class SetupPage(QWidget):
             "approach_band_c": self.approach_band_spin,
             "approach_rate_pct": self.approach_rate_spin,
             "soak_band_c": self.soak_band_spin,
+            "center_comp_rate": self.comp_rate_spin,
+            "center_comp_limit_c": self.comp_limit_spin,
         }
         for index, spin in enumerate(self.offset_spins):
             widgets[f"zone{index + 1}_trim_c"] = spin
@@ -414,6 +431,8 @@ class SetupPage(QWidget):
             soak_band_c=self.soak_band_spin.value(),
             zone_offsets_c=tuple(spin.value() for spin in self.offset_spins),
             strict_soak=self.strict_soak_check.isChecked(),
+            center_comp_rate_per_min=self.comp_rate_spin.value(),
+            center_comp_limit_c=self.comp_limit_spin.value(),
         )
 
     def collect_profile(self) -> RunProfile:
@@ -531,6 +550,24 @@ class LiveControlPage(QWidget):
         manual_row.addWidget(button("Apply field", "secondary", window.apply_manual_field))
         manual_row.addStretch()
         manual.body.addLayout(manual_row)
+        offset_row = QHBoxLayout()
+        offset_row.addWidget(QLabel("Zone offsets 1 / 2 / 3"))
+        self.manual_offset_spins = []
+        for index in range(3):
+            spin = self._temperature_spin(0.0, -100.0, 50.0, " °C")
+            spin.setToolTip(
+                f"Zone {index + 1} runs at target + this offset (e.g. −10 on Zones 1 and 3 so the "
+                "middle zone, which gains their heat, lands on the target)"
+            )
+            self.manual_offset_spins.append(spin)
+            offset_row.addWidget(spin)
+        offset_row.addWidget(button("Apply offsets", "secondary", window.apply_manual_offsets))
+        self.comp_label = QLabel("")
+        self.comp_label.setObjectName("muted")
+        offset_row.addSpacing(12)
+        offset_row.addWidget(self.comp_label)
+        offset_row.addStretch()
+        manual.body.addLayout(offset_row)
 
         self.splitter = QSplitter(Qt.Orientation.Vertical)
         self.splitter.setChildrenCollapsible(True)
@@ -609,6 +646,13 @@ class LiveControlPage(QWidget):
         if out_of_band:
             detail += f" · {out_of_band:.0f} s out of band"
         self.zone_metrics[3].set_detail(detail)
+        comp = snapshot.get("center_comp_c", 0.0)
+        targets = snapshot.get("zone_targets")
+        if targets:
+            self.comp_label.setText(
+                "Zone targets now " + " / ".join(f"{t:.0f}" for t in targets) + " °C"
+                + (f" (middle-zone compensation {comp:+.1f} °C on Zones 1/3)" if comp else "")
+            )
         self.phase_pill.setText(snapshot["phase"])
         elapsed = time.strftime("%H:%M:%S", time.gmtime(snapshot["elapsed_sec"]))
         self.elapsed_label.setText(f"Elapsed {elapsed}")

@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from asc_oven_control.infrastructure.persistence import LiveCsvLog, RunLogger, atomic_write_json
+from asc_oven_control.infrastructure.persistence import IdleCsvLog, LiveCsvLog, RunLogger, atomic_write_json
 from asc_oven_control.services.monitor import HardwareMonitor
 from asc_oven_control.services.oven_backend import WatlowOven, create_backend
 from asc_oven_control.services.run_engine import HARDWARE_MIN_POLL_S, RunEngine, RunEngineError
@@ -60,6 +60,7 @@ class MainWindow(QMainWindow):
         self.chart_mode = "idle"  # "idle": plotting monitor readings; "run": a run's trace
         self.monitor_started = 0.0
         self.live_log: LiveCsvLog | None = None
+        self.idle_log: IdleCsvLog | None = None
         self.nav_buttons: list[QPushButton] = []
         self.last_error = ""
         self.monitor = HardwareMonitor(lambda: WatlowOven(self.config), poll_seconds=HARDWARE_MIN_POLL_S)
@@ -99,6 +100,13 @@ class MainWindow(QMainWindow):
 
         if self.engine.active:
             return
+        if self.idle_log is None and self.runs_dir() is not None:
+            self.idle_log = IdleCsvLog(self.runs_dir())
+        if self.idle_log is not None:
+            try:
+                self.idle_log.write(reading, time.time())
+            except OSError:
+                self.idle_log = None
         self.live_page.apply_reading(reading)
         if self.chart_mode == "idle":
             self.chart.add_snapshot(
@@ -281,6 +289,8 @@ class MainWindow(QMainWindow):
         self._open_live_log(run_id, profile, settings)
         self.live_page.manual_target_spin.setValue(profile.target_setpoint_c)
         self.live_page.manual_ramp_spin.setValue(profile.ramp_rate_c_per_min)
+        for spin, value in zip(self.live_page.manual_offset_spins, settings.zone_offsets_c):
+            spin.setValue(value)
         self.live_page.live_field_check.setChecked(profile.field_enabled)
         mode = "simulation" if self.config.simulation_mode else "hardware"
         self.show_status_text(f"Run started ({mode})")
@@ -307,6 +317,15 @@ class MainWindow(QMainWindow):
         self.engine.set_ramp_rate(value)
         self.setup_page.ramp_spin.setValue(value)
         self.show_status_text(f"Ramp rate set to {value:.1f} °C/min")
+
+    def apply_manual_offsets(self) -> None:
+        from dataclasses import replace
+
+        offsets = tuple(spin.value() for spin in self.live_page.manual_offset_spins)
+        self.engine.set_settings(replace(self.engine.settings, zone_offsets_c=offsets))
+        for spin, value in zip(self.setup_page.offset_spins, offsets):
+            spin.setValue(value)
+        self.show_status_text("Zone offsets set to " + " / ".join(f"{o:+.1f}" for o in offsets) + " °C")
 
     def apply_manual_field(self) -> None:
         enabled = self.live_page.live_field_check.isChecked()
@@ -411,5 +430,7 @@ class MainWindow(QMainWindow):
         self.engine.shutdown()
         self.monitor.shutdown()
         self._close_live_log()
+        if self.idle_log is not None:
+            self.idle_log.close()
         self.logger.close()
         event.accept()

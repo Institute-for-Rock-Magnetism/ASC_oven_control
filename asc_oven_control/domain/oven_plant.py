@@ -70,13 +70,27 @@ class ZoneParameters:
 
 
 DEFAULT_ZONES = (
-    # Zone 1: sample zone, small mass, fast.
-    ZoneParameters(capacity_j_per_k=1500.0, heater_w=1000.0, loss_w_per_k=0.45, emissive_area_m2=0.0045),
-    # Zone 2/3: outer zones, heavier and lossier (end caps).
-    ZoneParameters(capacity_j_per_k=2600.0, heater_w=1500.0, loss_w_per_k=0.9, emissive_area_m2=0.008),
-    ZoneParameters(capacity_j_per_k=3000.0, heater_w=1500.0, loss_w_per_k=0.85, emissive_area_m2=0.0075),
+    # Zones 1 and 3: outer zones (end caps), lossy.
+    ZoneParameters(capacity_j_per_k=1500.0, heater_w=1000.0, loss_w_per_k=0.9, emissive_area_m2=0.006),
+    # Zone 2: middle zone. Gains heat from both neighbours and sheds little of
+    # its own (first heated run: 116 C at 0 % output with Zones 1/3 at 100 C).
+    ZoneParameters(capacity_j_per_k=2600.0, heater_w=1200.0, loss_w_per_k=0.6, emissive_area_m2=0.004),
+    ZoneParameters(capacity_j_per_k=1500.0, heater_w=1000.0, loss_w_per_k=0.9, emissive_area_m2=0.006),
 )
-COUPLING_W_PER_K = (0.0, 1.6, 1.6)  # conductance from Zone 1 to Zone 2 / Zone 3
+# Conductance Zone 2 <-> Zone 1 and Zone 2 <-> Zone 3 (Zone 2 is in the middle).
+COUPLING_W_PER_K = (1.2, 0.0, 1.2)
+# Heater elements have their own mass: power heats the element, which heats
+# the zone with a lag of minutes (Zone 3 kept rising 10+ C/min at 0 % output
+# after a burst). Outer elements also warm the middle zone directly.
+# Fitted (2026-09-29) to two real data points: the 100 C run (Zone 2 peaked
+# ~16 C high, Zones 1/3 ~10 C) and the 2009 590 C shared-set-point run
+# (zones settle within ~2 C). Zone 2's element is heavy and slow; a small
+# share of the outer elements' heat goes straight into the middle zone.
+ELEMENT_CAPACITY_J_PER_K = 600.0
+ELEMENT_TO_ZONE_W_PER_K = 4.0
+MIDDLE_ELEMENT_CAPACITY_J_PER_K = 1500.0
+MIDDLE_ELEMENT_TO_ZONE_W_PER_K = 2.0
+OUTER_ELEMENT_TO_MIDDLE_FRACTION = 0.1
 
 # PID set 1 as read from the ASC oven's controllers on 2026-09-29 (SI
 # units): prop band 47/65/47 C, integral 12.5/60/12.5 min/repeat,
@@ -100,12 +114,27 @@ class OvenPlant:
     heater_enabled: bool = True
     quantize: bool = True
     temps_c: list[float] = field(default_factory=list)
+    element_c: list[float] = field(default_factory=list)
     power_pct: list[float] = field(default_factory=lambda: [0.0, 0.0, 0.0])
     substep_s: float = 0.25
+    outer_to_middle_fraction: float = OUTER_ELEMENT_TO_MIDDLE_FRACTION
+    element_capacity: list[float] = field(
+        default_factory=lambda: [ELEMENT_CAPACITY_J_PER_K, MIDDLE_ELEMENT_CAPACITY_J_PER_K, ELEMENT_CAPACITY_J_PER_K]
+    )
+    element_conductance: list[float] = field(
+        default_factory=lambda: [ELEMENT_TO_ZONE_W_PER_K, MIDDLE_ELEMENT_TO_ZONE_W_PER_K, ELEMENT_TO_ZONE_W_PER_K]
+    )
+
+    def set_uniform(self, temperature_c: float) -> None:
+        """Start from thermal equilibrium at ``temperature_c`` (zones and elements)."""
+        self.temps_c = [float(temperature_c)] * 3
+        self.element_c = [float(temperature_c)] * 3
 
     def __post_init__(self) -> None:
         if not self.temps_c:
             self.temps_c = [self.ambient_c] * 3
+        if not self.element_c:
+            self.element_c = list(self.temps_c)
 
     def readings(self) -> tuple[float, float, float]:
         """What the controllers report (whole degrees on the real Series 96)."""
@@ -126,18 +155,29 @@ class OvenPlant:
 
     def _integrate(self, h: float) -> None:
         t = self.temps_c
+        e = self.element_c
         ambient_k = self.ambient_c + KELVIN
         flows = [0.0, 0.0, 0.0]
-        for i in (1, 2):
-            q = COUPLING_W_PER_K[i] * (t[0] - t[i])
-            flows[0] -= q
+        for i in (0, 2):
+            q = COUPLING_W_PER_K[i] * (t[1] - t[i])
+            flows[1] -= q
             flows[i] += q
-        new = []
+        new_elements = []
         for i, zone in enumerate(self.zones):
             heater = zone.heater_w * self.power_pct[i] / 100.0 if self.heater_enabled else 0.0
+            to_zone = self.element_conductance[i] * (e[i] - t[i])
+            if i == 1:
+                flows[1] += to_zone
+            else:
+                flows[i] += to_zone * (1.0 - self.outer_to_middle_fraction)
+                flows[1] += to_zone * self.outer_to_middle_fraction
+            new_elements.append(e[i] + (heater - to_zone) / self.element_capacity[i] * h)
+        new = []
+        for i, zone in enumerate(self.zones):
             convective = zone.loss_w_per_k * (t[i] - self.ambient_c)
             tk = t[i] + KELVIN
             radiative = STEFAN_BOLTZMANN * zone.emissive_area_m2 * (tk**4 - ambient_k**4)
-            net = heater - convective - radiative + flows[i]
+            net = -convective - radiative + flows[i]
             new.append(t[i] + net / zone.capacity_j_per_k * h)
         self.temps_c = new
+        self.element_c = new_elements

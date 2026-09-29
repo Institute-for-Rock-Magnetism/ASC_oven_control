@@ -68,6 +68,26 @@ class GradientSettings:
     # without touching the controller's own PID. 0 disables it.
     trim_rate_per_min: float = 0.0
     trim_limit_c: float = 20.0
+    # Middle-zone compensation. Zone 2 sits between Zones 1 and 3, gains
+    # their heat and sheds little of its own (first heated run, 100 C:
+    # Zone 2 climbed to 116 C at 0 % output while Zones 1/3 held 100 C).
+    # Its own heater cannot pull it down, so while the middle zone is above
+    # target the outer zones' set points are lowered by center_comp_c, which
+    # integrates the middle zone's excess at center_comp_rate_per_min
+    # (degrees per minute per degree of excess) and relaxes back to 0 when
+    # it is below target. Only ever lowers the outer zones; active from the
+    # approach phase on. center_zone=None disables it.
+    # A leading zone's set point is held at most this far below the ramp
+    # set point. With the oven's slow heater elements a deep cap starves the
+    # leader until it becomes the coldest zone, which then gets a full burst
+    # and overshoots minutes later; zones take turns overshooting.
+    max_cap_depth_c: float = 10.0
+    center_zone: int | None = 1
+    # Off by default: in the calibrated model Zone 2's overshoot is mostly
+    # its own heavy element's lag, and lowering the outer zones for it only
+    # widens the gradient. Use per-zone offsets once measured instead.
+    center_comp_rate_per_min: float = 0.0
+    center_comp_limit_c: float = 30.0
 
     def __post_init__(self) -> None:
         for name in ("hold_band_c", "max_gradient_c", "soak_band_c"):
@@ -81,6 +101,10 @@ class GradientSettings:
             raise ValueError("zone_offsets_c needs three values")
         if self.trim_rate_per_min < 0 or self.trim_limit_c < 0:
             raise ValueError("trim settings must be >= 0")
+        if self.center_zone is not None and self.center_zone not in (0, 1, 2):
+            raise ValueError("center_zone must be 0, 1, 2 or None")
+        if self.center_comp_rate_per_min < 0 or self.center_comp_limit_c < 0:
+            raise ValueError("center compensation settings must be >= 0")
 
 
 @dataclass(slots=True)
@@ -94,6 +118,8 @@ class ControlDecision:
     soak_elapsed_s: float
     held_by: int | None = None  # zone index that paused the ramp
     limited: tuple[bool, bool, bool] = (False, False, False)
+    zone_targets_c: tuple[float, float, float] = (0.0, 0.0, 0.0)  # target + intended offset
+    center_comp_c: float = 0.0
 
 
 @dataclass(slots=True)
@@ -110,6 +136,7 @@ class ZoneCoordinator:
     phase: str = ZonePhase.RAMPING
     holding: bool = False
     trims_c: list[float] = field(default_factory=lambda: [0.0, 0.0, 0.0])
+    center_comp_c: float = 0.0
 
     # A hold releases once the lag is back under this fraction of the band,
     # so the ramp does not toggle on and off at the band edge.
@@ -122,12 +149,28 @@ class ZoneCoordinator:
             self.soak_elapsed_s = 0.0
             self.out_of_band_s = 0.0
         self.trims_c = [0.0, 0.0, 0.0]
+        self.center_comp_c = 0.0
+
+    def offsets(self) -> list[float]:
+        """Intended offset of each zone from the target (static trim + compensation)."""
+        s = self.settings
+        result = list(s.zone_offsets_c)
+        if s.center_zone is not None:
+            for index in range(3):
+                if index != s.center_zone:
+                    result[index] += self.center_comp_c
+        return result
 
     def step(self, zones_c: tuple[float, float, float], dt_s: float) -> ControlDecision:
         s = self.settings
-        zones = tuple(float(z) for z in zones_c)
+        raw = tuple(float(z) for z in zones_c)
+        gradient = max(raw) - min(raw)
+        # All control decisions use temperatures relative to each zone's
+        # intended offset, so a deliberately cooler outer zone is not
+        # mistaken for a lagging one.
+        offsets = self.offsets()
+        zones = tuple(z - o for z, o in zip(raw, offsets))
         coldest, hottest = min(zones), max(zones)
-        gradient = hottest - coldest
         heating = self.target_c >= (self.master_c if self.master_c is not None else coldest)
 
         if self.master_c is None:
@@ -177,8 +220,12 @@ class ZoneCoordinator:
 
         if self.phase in (ZonePhase.SETTLING, ZonePhase.SOAKING) and s.trim_rate_per_min > 0:
             self._update_trims(zones, heating, dt_s)
+        if self.phase in (ZonePhase.APPROACH, ZonePhase.SETTLING, ZonePhase.SOAKING):
+            self._update_center_comp(raw, dt_s)
+            offsets = self.offsets()
+            zones = tuple(z - o for z, o in zip(raw, offsets))
 
-        setpoints, limited = self._zone_setpoints(zones, heating)
+        setpoints, limited = self._zone_setpoints(zones, heating, offsets)
         return ControlDecision(
             master_setpoint_c=self.master_c,
             zone_setpoints_c=setpoints,
@@ -187,7 +234,18 @@ class ZoneCoordinator:
             soak_elapsed_s=self.soak_elapsed_s,
             held_by=held_by,
             limited=limited,
+            zone_targets_c=tuple(self.target_c + o for o in offsets),
+            center_comp_c=self.center_comp_c,
         )
+
+    def _update_center_comp(self, raw: tuple[float, ...], dt_s: float) -> None:
+        s = self.settings
+        if s.center_zone is None or s.center_comp_rate_per_min <= 0:
+            return
+        goal = self.target_c + s.zone_offsets_c[s.center_zone]
+        excess = raw[s.center_zone] - goal
+        comp = self.center_comp_c - s.center_comp_rate_per_min / 60.0 * excess * dt_s
+        self.center_comp_c = clamp(comp, -s.center_comp_limit_c, 0.0)
 
     def _effective_targets(self, zones: tuple[float, ...], heating: bool) -> list[float]:
         """Where each zone should sit: the target, or the gradient cap if lower."""
@@ -211,8 +269,9 @@ class ZoneCoordinator:
             self.trims_c[index] = clamp(trim, -s.trim_limit_c, s.trim_limit_c)
 
     def _zone_setpoints(
-        self, zones: tuple[float, ...], heating: bool
+        self, zones: tuple[float, ...], heating: bool, offsets: list[float]
     ) -> tuple[tuple[float, float, float], tuple[bool, bool, bool]]:
+        """``zones`` are offset-relative temperatures (raw minus offset)."""
         s = self.settings
         master = self.master_c
         setpoints = []
@@ -225,18 +284,20 @@ class ZoneCoordinator:
             trailing = min(zones)
             ceiling = trailing + s.max_gradient_c
             for index in range(3):
-                shift = s.zone_offsets_c[index] + self.trims_c[index]
+                shift = offsets[index] + self.trims_c[index]
                 wanted = master + shift
                 capped = wanted if zones[index] <= trailing else min(wanted, ceiling + shift)
+                capped = max(capped, wanted - s.max_cap_depth_c)
                 setpoints.append(capped)
                 limited.append(capped < wanted)
         else:
             trailing = max(zones)
             floor = trailing - s.max_gradient_c
             for index in range(3):
-                shift = s.zone_offsets_c[index] + self.trims_c[index]
+                shift = offsets[index] + self.trims_c[index]
                 wanted = master + shift
                 capped = wanted if zones[index] >= trailing else max(wanted, floor + shift)
+                capped = min(capped, wanted + s.max_cap_depth_c)
                 setpoints.append(capped)
                 limited.append(capped > wanted)
         return tuple(setpoints), tuple(limited)
