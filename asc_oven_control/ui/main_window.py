@@ -21,11 +21,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from asc_oven_control.infrastructure.persistence import RunLogger, atomic_write_json
+from asc_oven_control.infrastructure.persistence import LiveCsvLog, RunLogger, atomic_write_json
 from asc_oven_control.services.oven_backend import create_backend
 from asc_oven_control.services.run_engine import RunEngine, RunEngineError
+from asc_oven_control.ui.live_plot import create_trend_chart
 from asc_oven_control.ui.pages import DataPage, InstrumentPage, LiveControlPage, SetupPage, TuningPage
-from asc_oven_control.ui.plot_widget import ZoneTrendChart
 
 NAV_ITEMS = (
     ("01   Setup", "WORKSPACE / SETUP", "Prepare a thermal run"),
@@ -55,7 +55,8 @@ class MainWindow(QMainWindow):
         self.resize(1280, 840)
         self.setMinimumSize(1060, 720)
 
-        self.chart = ZoneTrendChart()
+        self.chart = create_trend_chart()
+        self.live_log: LiveCsvLog | None = None
         self.nav_buttons: list[QPushButton] = []
         self.last_error = ""
         self._build_ui()
@@ -200,10 +201,11 @@ class MainWindow(QMainWindow):
         self.engine.set_settings(settings)
         self.chart.clear()
         try:
-            self.engine.start(profile)
+            run_id = self.engine.start(profile)
         except (RunEngineError, OSError, ValueError) as exc:
             QMessageBox.warning(self, "Cannot start run", str(exc))
             return
+        self._open_live_log(run_id, profile, settings)
         self.live_page.manual_target_spin.setValue(profile.target_setpoint_c)
         self.live_page.manual_ramp_spin.setValue(profile.ramp_rate_c_per_min)
         self.live_page.live_field_check.setChecked(profile.field_enabled)
@@ -249,9 +251,13 @@ class MainWindow(QMainWindow):
 
     def _on_snapshot(self, snapshot: dict) -> None:
         self.live_page._apply_snapshot(snapshot)
-        self.chart.append(
-            snapshot["elapsed_sec"], snapshot["zones"], snapshot["output_setpoint_c"], snapshot["current_a"]
-        )
+        self.chart.add_snapshot(snapshot)
+        if self.live_log is not None:
+            try:
+                self.live_log.write_snapshot(snapshot)
+            except OSError as exc:
+                self.live_page.add_event(f"CSV log write failed: {exc}")
+                self._close_live_log()
         if snapshot["alarm"] and snapshot["alarm"] != self.last_error:
             self.last_error = snapshot["alarm"]
             self.status_text.setText("Alarm active")
@@ -271,31 +277,45 @@ class MainWindow(QMainWindow):
             return self.config_path.parent.parent / "runs"
         return Path(self.config.data_dir) / "runs" if self.config.data_dir else None
 
-    def _auto_export(self) -> str:
-        """Write the finished run's full time/temperature record as CSV."""
+    def _open_live_log(self, run_id: int, profile, settings) -> None:
+        """Start the per-poll CSV record of this run in the runs folder."""
         from datetime import datetime
 
-        from asc_oven_control.infrastructure.persistence import export_samples_csv
-
-        run_id = self.engine.last_run_id
         directory = self.runs_dir()
-        if run_id is None or directory is None:
+        if directory is None:
+            return
+        mode = "simulation" if self.config.simulation_mode else f"Watlow hardware on {self.config.serial.port}"
+        header = (
+            f"ASC oven run {run_id} started {datetime.now():%Y-%m-%d %H:%M:%S} ({mode})",
+            f"operator={profile.operator} batch={profile.batch_id} sample={profile.sample_id} "
+            f"atmosphere={profile.atmosphere}",
+            f"target={profile.target_setpoint_c:g}C ramp={profile.ramp_rate_c_per_min:g}C/min "
+            f"soak={profile.soak_time_sec:g}s alarm_high={profile.alarm_high_c:g}C",
+            f"hold_band={settings.hold_band_c:g}C max_gradient={settings.max_gradient_c:g}C "
+            f"approach_band={settings.approach_band_c:g}C approach_rate={settings.approach_rate_fraction:g} "
+            f"soak_band={settings.soak_band_c:g}C strict_soak={settings.strict_soak} "
+            f"trims={settings.zone_offsets_c}",
+        )
+        path = directory / f"run-{run_id:04d}-{datetime.now():%Y%m%d-%H%M}.csv"
+        try:
+            self.live_log = LiveCsvLog(path, header)
+        except OSError as exc:
+            self.live_log = None
+            QMessageBox.warning(self, "Run log", f"Could not create {path}: {exc}\nSamples still go to the database.")
+            return
+        self.live_page.add_event(f"Logging to {path}")
+
+    def _close_live_log(self) -> str:
+        if self.live_log is None:
             return ""
-        rows = self.logger.get_detailed_samples(run_id)
-        if not rows:
-            return ""
-        directory.mkdir(parents=True, exist_ok=True)
-        target = directory / f"run-{run_id:04d}-{datetime.now():%Y%m%d-%H%M}.csv"
-        export_samples_csv(rows, target)
-        return str(target)
+        path = str(self.live_log.path)
+        self.live_log.close()
+        self.live_log = None
+        return path
 
     def _on_engine_finished(self, outcome: str) -> None:
-        try:
-            exported = self._auto_export()
-        except OSError as exc:
-            exported = ""
-            QMessageBox.warning(self, "Run log", f"Could not write the run CSV: {exc}")
-        self.show_status_text(f"Run {outcome.lower()}" + (f" · log saved to {exported}" if exported else ""))
+        saved = self._close_live_log()
+        self.show_status_text(f"Run {outcome.lower()}" + (f" · log saved to {saved}" if saved else ""))
         self.live_page.refresh()
         self.data_page.refresh()
         self.tuning_page.refresh()
@@ -304,5 +324,6 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:  # noqa: N802 (Qt override)
         self.engine.shutdown()
+        self._close_live_log()
         self.logger.close()
         event.accept()

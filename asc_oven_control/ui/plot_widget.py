@@ -19,7 +19,7 @@ SETPOINT_COLOR = "#E9C46A"
 CURRENT_COLOR = "#8CA4AD"
 GRID_COLOR = "#294753"
 BACKGROUND = "#102A36"
-MAX_RECORDS = 1200
+MAX_RECORDS = 20000
 
 
 class ZoneTrendChart(QWidget):
@@ -36,6 +36,9 @@ class ZoneTrendChart(QWidget):
     def clear(self) -> None:
         self.records.clear()
         self.update()
+
+    def add_snapshot(self, snapshot: dict) -> None:
+        self.append(snapshot["elapsed_sec"], snapshot["zones"], snapshot["output_setpoint_c"], None)
 
     def append(
         self,

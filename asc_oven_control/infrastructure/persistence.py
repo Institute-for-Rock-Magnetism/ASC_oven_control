@@ -195,6 +195,63 @@ def export_samples_csv(rows: Iterable[tuple], target: Path | str) -> None:
         writer.writerows(rows)
 
 
+LIVE_CSV_COLUMNS = (
+    "timestamp", "elapsed_min",
+    "zone1_c", "zone2_c", "zone3_c",
+    "zone1_sp_c", "zone2_sp_c", "zone3_sp_c",
+    "zone1_power_pct", "zone2_power_pct", "zone3_power_pct",
+    "ramp_setpoint_c", "target_c", "gradient_c",
+    "phase", "control_phase", "soak_elapsed_s", "out_of_band_s", "alarm",
+)
+
+
+class LiveCsvLog:
+    """Appends one row per engine snapshot and flushes it immediately.
+
+    The file is complete up to the last poll even if the application is
+    closed mid-run; the SQLite database holds the same samples.
+    """
+
+    def __init__(self, path: Path | str, header_lines: Iterable[str] = ()) -> None:
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._handle = open(self.path, "w", newline="", encoding="utf-8")
+        for line in header_lines:
+            self._handle.write(f"# {line}\n")
+        self._writer = csv.writer(self._handle)
+        self._writer.writerow(LIVE_CSV_COLUMNS)
+        self._handle.flush()
+
+    def write_snapshot(self, snapshot: dict[str, Any]) -> None:
+        if self._handle.closed:
+            return
+        zones = snapshot["zones"]
+        setpoints = snapshot.get("zone_setpoints", (None, None, None))
+        powers = snapshot.get("zone_power", (None, None, None))
+        self._writer.writerow(
+            (
+                datetime.fromtimestamp(snapshot["timestamp"]).isoformat(timespec="seconds"),
+                f"{snapshot['elapsed_sec'] / 60.0:.3f}",
+                *zones,
+                *setpoints,
+                *(None if p is None else f"{p:.1f}" for p in powers),
+                f"{snapshot['output_setpoint_c']:.2f}",
+                snapshot["target_setpoint_c"],
+                snapshot.get("gradient_c", max(zones) - min(zones)),
+                snapshot["phase"],
+                snapshot.get("control_phase", ""),
+                f"{snapshot.get('soak_elapsed_s', 0.0):.0f}",
+                f"{snapshot.get('out_of_band_s', 0.0):.0f}",
+                snapshot.get("alarm", ""),
+            )
+        )
+        self._handle.flush()
+
+    def close(self) -> None:
+        if not self._handle.closed:
+            self._handle.close()
+
+
 def atomic_write_json(path: Path | str, data: dict[str, Any], create_backup: bool = True) -> None:
     """Write ``data`` as pretty JSON via temp file + fsync + atomic replace.
 

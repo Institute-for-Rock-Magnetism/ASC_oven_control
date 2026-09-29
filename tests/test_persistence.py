@@ -56,6 +56,28 @@ class RunLoggerTest(unittest.TestCase):
         finally:
             logger.close()
 
+    def test_live_csv_is_flushed_per_row(self):
+        from asc_oven_control.infrastructure.persistence import LIVE_CSV_COLUMNS, LiveCsvLog
+
+        path = Path(self.temp_dir.name) / "runs" / "run.csv"
+        log = LiveCsvLog(path, ["ASC oven run 1"])
+        snapshot = {
+            "timestamp": 1000.0, "elapsed_sec": 90.0, "zones": (99.0, 100.0, 101.0),
+            "zone_setpoints": (100.0, 100.0, 100.0), "zone_power": (40.0, None, 12.5),
+            "output_setpoint_c": 100.0, "target_setpoint_c": 100.0, "gradient_c": 2.0,
+            "phase": "Soaking", "control_phase": "Soaking", "soak_elapsed_s": 30.0,
+            "out_of_band_s": 4.0, "alarm": "",
+        }
+        log.write_snapshot(snapshot)
+        # Readable before close: a crash mid-run must not lose rows.
+        lines = path.read_text(encoding="utf-8").splitlines()
+        self.assertEqual(lines[0], "# ASC oven run 1")
+        rows = list(csv.reader(lines[1:]))
+        self.assertEqual(tuple(rows[0]), LIVE_CSV_COLUMNS)
+        self.assertEqual(rows[1][1], "1.500")
+        self.assertEqual(rows[1][2:5], ["99.0", "100.0", "101.0"])
+        log.close()
+
     def test_run_lifecycle(self):
         logger = RunLogger(self.db_path)
         try:

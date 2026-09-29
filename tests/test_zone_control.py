@@ -58,6 +58,17 @@ class CoordinatorUnitTest(unittest.TestCase):
         d = c.step((500.0, 500.0, 500.0), 10.0)
         self.assertEqual(d.phase, ZonePhase.COMPLETE)
 
+    def test_continuous_soak_counts_excursions(self):
+        c = ZoneCoordinator(100.0, 10.0, 30.0, GradientSettings(soak_band_c=1.0, strict_soak=False))
+        c.master_c = 100.0
+        d = c.step((100.0, 100.0, 101.0), 10.0)
+        self.assertEqual(d.phase, ZonePhase.SOAKING)
+        d = c.step((100.0, 98.0, 100.0), 10.0)  # excursion: clock keeps running
+        self.assertEqual(d.soak_elapsed_s, 20.0)
+        self.assertEqual(c.out_of_band_s, 10.0)
+        d = c.step((100.0, 100.0, 100.0), 10.0)
+        self.assertEqual(d.phase, ZonePhase.COMPLETE)
+
     def test_retarget_restarts_ramp_from_soak(self):
         c = ZoneCoordinator(100.0, 10.0, 600.0)
         c.master_c = 100.0

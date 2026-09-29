@@ -190,6 +190,13 @@ class SetupPage(QWidget):
         ):
             gradient_form.addRow(label, widget)
         gradient_form.addRow("Zone 1/2/3 trim", offsets_row)
+        self.strict_soak_check = QCheckBox("Pause the soak clock whenever a zone leaves the band")
+        self.strict_soak_check.setChecked(defaults.strict_soak)
+        self.strict_soak_check.setToolTip(
+            "Unchecked: the soak starts once every zone is in band, then runs for the full "
+            "soak time; time spent out of band is logged and shown."
+        )
+        gradient_form.addRow("Soak clock", self.strict_soak_check)
         gradient.body.addLayout(gradient_form)
         grid.addWidget(gradient, 3, 0)
         self.load_form_state()
@@ -243,6 +250,7 @@ class SetupPage(QWidget):
             state[key] = widget.text() if isinstance(widget, QLineEdit) else widget.value()
         state["atmosphere"] = self.atmosphere_combo.currentText()
         state["field_enabled"] = self.field_check.isChecked()
+        state["strict_soak"] = self.strict_soak_check.isChecked()
         state["notes"] = self.notes_edit.toPlainText()
         return state
 
@@ -284,6 +292,7 @@ class SetupPage(QWidget):
         if state.get("atmosphere") in [str(a) for a in Atmosphere]:
             self.atmosphere_combo.setCurrentText(state["atmosphere"])
         self.field_check.setChecked(bool(state.get("field_enabled", False)))
+        self.strict_soak_check.setChecked(bool(state.get("strict_soak", True)))
         self.notes_edit.setPlainText(str(state.get("notes", "")))
 
     # ------------------------------------------------------------ connection
@@ -364,6 +373,7 @@ class SetupPage(QWidget):
             approach_rate_fraction=self.approach_rate_spin.value() / 100.0,
             soak_band_c=self.soak_band_spin.value(),
             zone_offsets_c=tuple(spin.value() for spin in self.offset_spins),
+            strict_soak=self.strict_soak_check.isChecked(),
         )
 
     def collect_profile(self) -> RunProfile:
@@ -511,9 +521,11 @@ class LiveControlPage(QWidget):
         self.zone_metrics[3].set_value(f"{snapshot.get('gradient_c', max(zones) - min(zones)):.0f} °C")
         control_phase = snapshot.get("control_phase", "")
         soak = snapshot.get("soak_elapsed_s", 0.0)
-        self.zone_metrics[3].set_detail(
-            f"{control_phase} · soak {time.strftime('%H:%M:%S', time.gmtime(soak))}" if control_phase else ""
-        )
+        out_of_band = snapshot.get("out_of_band_s", 0.0)
+        detail = f"{control_phase} · soak {time.strftime('%H:%M:%S', time.gmtime(soak))}" if control_phase else ""
+        if out_of_band:
+            detail += f" · {out_of_band:.0f} s out of band"
+        self.zone_metrics[3].set_detail(detail)
         self.phase_pill.setText(snapshot["phase"])
         elapsed = time.strftime("%H:%M:%S", time.gmtime(snapshot["elapsed_sec"]))
         self.elapsed_label.setText(f"Elapsed {elapsed}")

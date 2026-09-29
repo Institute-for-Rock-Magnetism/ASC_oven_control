@@ -231,6 +231,8 @@ class _RunWorker(QObject):
                 "phase": str(sample.phase),
                 "control_phase": self.detail_phase,
                 "soak_elapsed_s": self.coordinator.soak_elapsed_s,
+                "out_of_band_s": self.coordinator.out_of_band_s,
+                "soak_band_c": self.coordinator.settings.soak_band_c,
                 "alarm": alarm,
                 "field_enabled": self.field_enabled,
                 "field_amplitude_uT": self.field_amplitude_uT,

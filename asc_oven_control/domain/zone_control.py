@@ -57,6 +57,10 @@ class GradientSettings:
     approach_rate_fraction: float = 0.35
     soak_band_c: float = 2.0
     zone_offsets_c: tuple[float, float, float] = (0.0, 0.0, 0.0)
+    # True: the soak clock pauses whenever a zone leaves the band.
+    # False: the soak starts once all zones are in band and then runs
+    # continuously; excursions are counted in ``out_of_band_s``.
+    strict_soak: bool = True
 
     def __post_init__(self) -> None:
         for name in ("hold_band_c", "max_gradient_c", "soak_band_c"):
@@ -93,6 +97,7 @@ class ZoneCoordinator:
     settings: GradientSettings = field(default_factory=GradientSettings)
     master_c: float | None = None
     soak_elapsed_s: float = 0.0
+    out_of_band_s: float = 0.0
     phase: str = ZonePhase.RAMPING
     holding: bool = False
 
@@ -105,6 +110,7 @@ class ZoneCoordinator:
         if self.phase in (ZonePhase.SOAKING, ZonePhase.SETTLING, ZonePhase.COMPLETE):
             self.phase = ZonePhase.RAMPING
             self.soak_elapsed_s = 0.0
+            self.out_of_band_s = 0.0
 
     def step(self, zones_c: tuple[float, float, float], dt_s: float) -> ControlDecision:
         s = self.settings
@@ -150,8 +156,11 @@ class ZoneCoordinator:
                 self.phase = ZonePhase.SOAKING if in_band else ZonePhase.SETTLING
 
         if self.phase == ZonePhase.SOAKING:
-            if all(abs(z - self.target_c) <= s.soak_band_c for z in zones):
+            in_band = all(abs(z - self.target_c) <= s.soak_band_c for z in zones)
+            if in_band or not s.strict_soak:
                 self.soak_elapsed_s += dt_s
+            if not in_band:
+                self.out_of_band_s += dt_s
             if self.soak_elapsed_s >= self.soak_time_s:
                 self.phase = ZonePhase.COMPLETE
 
