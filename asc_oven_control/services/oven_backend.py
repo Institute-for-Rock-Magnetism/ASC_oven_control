@@ -26,6 +26,7 @@ class OvenReading:
     power_pct: tuple[float | None, float | None, float | None]
     alarms: tuple[str, ...]
     connected: bool
+    remote: tuple[bool, bool, bool] = (False, False, False)
 
 
 class OvenBackend(ABC):
@@ -48,6 +49,10 @@ class OvenBackend(ABC):
 
     def advance(self, dt_s: float) -> None:
         """Advance simulated time; real hardware runs on its own clock."""
+
+    def take_control(self) -> list[str]:
+        """Make the PC-written set points the active ones; returns notes."""
+        return []
 
     def safe_shutdown(self) -> None:
         """Drive every zone to its lowest allowed setpoint (heaters off)."""
@@ -139,7 +144,37 @@ class WatlowOven(OvenBackend):
             power_pct=tuple(s.power_pct for s in statuses),
             alarms=alarms,
             connected=True,
+            remote=tuple(s.remote for s in statuses),
         )
+
+    def take_control(self) -> list[str]:
+        """Switch every zone from the oven panel's remote set point to Local.
+
+        The local set point is first written to the zone's lowest value so
+        the switch itself never commands heat; the run then ramps from there.
+        """
+        notes = []
+        for index, zone in enumerate(self.zones):
+            if zone.identity is not None and zone.identity.remote_setpoint:
+                low = zone.setpoint_limits()[0]
+                zone.write_setpoint(low)
+                self._last_written[index] = low
+                zone.set_local_setpoint()
+                notes.append(f"Zone {index + 1}")
+        return notes
+
+    def release_control(self) -> None:
+        """Hand every zone back to the oven panel (remote set point)."""
+        errors = []
+        for index, zone in enumerate(self.zones):
+            try:
+                low = zone.setpoint_limits()[0]
+                zone.write_setpoint(low)
+                zone.set_remote_setpoint()
+            except Exception as exc:  # noqa: BLE001
+                errors.append(f"Zone {index + 1}: {exc}")
+        if errors:
+            raise CommunicationError("hand-back incomplete: " + "; ".join(errors))
 
     def write_setpoints(self, setpoints_c: tuple[float, float, float]) -> None:
         # Only write on change: the set point is whole degrees, so a
@@ -181,9 +216,10 @@ def probe_hardware(config: ApplicationConfig) -> list[str]:
             status = zone.read_status()
             ident = zone.identity
             power = "--" if status.power_pct is None else f"{status.power_pct:.0f}%"
+            source = "oven panel (remote)" if status.remote else "PC (local)"
             lines.append(
                 f"Zone {index + 1} (addr {zone.address}): Series {ident.model} sw {ident.software}"
-                f" · PV {status.process_c:.0f} °C · SP {status.setpoint_c:.0f} °C · output {power}"
+                f" · PV {status.process_c:.0f} °C · SP {status.setpoint_c:.0f} °C from {source} · output {power}"
                 + (f" · {', '.join(status.alarms)}" if status.alarms else "")
             )
     finally:

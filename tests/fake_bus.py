@@ -7,13 +7,18 @@ from asc_oven_control.infrastructure.serial_transport import BaseTransport
 MINUS_32000 = 0x8300
 
 
-def series96_registers(process=22, setpoint=98, band=47, integral=1250, derivative=90):
-    """Register image captured from the ASC oven's Zone 1 on 2026-09-29."""
+def series96_registers(process=22, setpoint=98, band=47, integral=1250, derivative=90, remote=False):
+    """Register image captured from the ASC oven's Zone 1 on 2026-09-29.
+
+    ``remote=True`` reproduces the oven as found: set point from Input 2
+    (reg 316 = 1, remote set point monitor reg 202).
+    """
     return {
         0: 96, 3: 1, 4: 500,
         100: process, 101: 0, 102: MINUS_32000, 103: 1000,
-        106: 0, 110: 0, 209: 0, 210: 0,
+        106: 0, 110: 0, 202: 2, 209: 0, 210: 0,
         300: setpoint, 301: 0, 304: 90, 305: 0,
+        316: 1 if remote else 0,
         500: band, 501: integral, 502: 8, 503: derivative, 504: derivative, 505: 0, 506: 5,
         602: 0, 603: 800, 606: 0,
         900: 2, 901: 1,

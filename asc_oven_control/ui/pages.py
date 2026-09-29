@@ -86,6 +86,12 @@ class SetupPage(QWidget):
         connection_buttons.addWidget(button("Test connection", "secondary", self._test_connection))
         connection_buttons.addWidget(button("Save connection", "primary", self._save_connection))
         connection_buttons.addStretch()
+        panel_button = button("Hand set point to oven panel", "quiet", self._hand_back)
+        panel_button.setToolTip(
+            "Runs switch the controllers to Local so the PC sets the temperature. This "
+            "switches them back to Remote, so the oven's own panel/timer (Input 2) sets it again."
+        )
+        connection_buttons.addWidget(panel_button)
         connection.body.addLayout(connection_buttons)
         self.connection_result = QLabel("")
         self.connection_result.setObjectName("recoveredNote")
@@ -360,6 +366,33 @@ class SetupPage(QWidget):
             self.window.release_port()
         self.connection_result.setText("\n".join(lines))
 
+    def _hand_back(self) -> None:
+        from asc_oven_control.services.oven_backend import WatlowOven
+
+        config = self.window.config
+        if config.simulation_mode or not config.serial.port:
+            self.connection_result.setText("Only applies in Watlow hardware mode.")
+            return
+        answer = QMessageBox.question(
+            self,
+            "Hand set point to oven panel",
+            "Set every zone to its lowest local set point and switch the controllers back to "
+            "Remote, so the oven's own panel/timer controls the temperature again?\n\n"
+            "If the oven panel is set to a temperature and its timer is running, the oven will heat.",
+        )
+        if answer != QMessageBox.StandardButton.Yes or not self.window.acquire_port():
+            return
+        backend = WatlowOven(config)
+        try:
+            backend.connect()
+            backend.release_control()
+            self.connection_result.setText("All zones now follow the oven panel (Remote set point).")
+        except Exception as exc:  # noqa: BLE001
+            self.connection_result.setText(f"Hand-back failed: {exc}")
+        finally:
+            backend.close()
+            self.window.release_port()
+
     def _save_connection(self) -> None:
         if self.window.engine.active:
             QMessageBox.information(self, "Connection", "Stop the active run before changing the connection.")
@@ -513,11 +546,13 @@ class LiveControlPage(QWidget):
     def apply_reading(self, reading) -> None:
         """Live controller readings while no run is active."""
         self._live_reading = reading
-        for metric, value, setpoint, power in zip(
-            self.zone_metrics[:3], reading.zones_c, reading.setpoints_c, reading.power_pct
+        for metric, value, setpoint, power, remote in zip(
+            self.zone_metrics[:3], reading.zones_c, reading.setpoints_c, reading.power_pct, reading.remote
         ):
             metric.set_value(f"{value:.0f} °C")
-            metric.set_detail(f"live · SP {setpoint:.0f} °C")
+            source = "oven panel" if remote else "PC"
+            out = "" if power is None else f" · out {power:.0f} %"
+            metric.set_detail(f"live · SP {setpoint:.0f} °C ({source}){out}")
         zones = reading.zones_c
         self.zone_metrics[3].set_value(f"{max(zones) - min(zones):.0f} °C")
         self.zone_metrics[3].set_detail("hottest − coldest zone")
@@ -966,6 +1001,7 @@ class TuningPage(QWidget):
         if backend is None:
             return
         try:
+            backend.take_control()  # the oven panel's remote set point would override ours
             for zone in backend.zones:
                 zone.write_setpoint(temperature)
             for zone in backend.zones:

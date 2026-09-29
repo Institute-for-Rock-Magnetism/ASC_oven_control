@@ -61,6 +61,13 @@ class GradientSettings:
     # False: the soak starts once all zones are in band and then runs
     # continuously; excursions are counted in ``out_of_band_s``.
     strict_soak: bool = True
+    # Setpoint trim (outer integral): once the ramp is at the target, each
+    # zone's setpoint is raised by trim_i, which grows at trim_rate_per_min
+    # degrees per minute per degree of remaining error. It removes the
+    # steady offset of a proportional-dominant or wound-up controller loop
+    # without touching the controller's own PID. 0 disables it.
+    trim_rate_per_min: float = 0.0
+    trim_limit_c: float = 20.0
 
     def __post_init__(self) -> None:
         for name in ("hold_band_c", "max_gradient_c", "soak_band_c"):
@@ -72,6 +79,8 @@ class GradientSettings:
             raise ValueError("approach_rate_fraction must be in (0, 1]")
         if len(self.zone_offsets_c) != 3:
             raise ValueError("zone_offsets_c needs three values")
+        if self.trim_rate_per_min < 0 or self.trim_limit_c < 0:
+            raise ValueError("trim settings must be >= 0")
 
 
 @dataclass(slots=True)
@@ -100,6 +109,7 @@ class ZoneCoordinator:
     out_of_band_s: float = 0.0
     phase: str = ZonePhase.RAMPING
     holding: bool = False
+    trims_c: list[float] = field(default_factory=lambda: [0.0, 0.0, 0.0])
 
     # A hold releases once the lag is back under this fraction of the band,
     # so the ramp does not toggle on and off at the band edge.
@@ -111,6 +121,7 @@ class ZoneCoordinator:
             self.phase = ZonePhase.RAMPING
             self.soak_elapsed_s = 0.0
             self.out_of_band_s = 0.0
+        self.trims_c = [0.0, 0.0, 0.0]
 
     def step(self, zones_c: tuple[float, float, float], dt_s: float) -> ControlDecision:
         s = self.settings
@@ -164,6 +175,9 @@ class ZoneCoordinator:
             if self.soak_elapsed_s >= self.soak_time_s:
                 self.phase = ZonePhase.COMPLETE
 
+        if self.phase in (ZonePhase.SETTLING, ZonePhase.SOAKING) and s.trim_rate_per_min > 0:
+            self._update_trims(zones, heating, dt_s)
+
         setpoints, limited = self._zone_setpoints(zones, heating)
         return ControlDecision(
             master_setpoint_c=self.master_c,
@@ -175,6 +189,27 @@ class ZoneCoordinator:
             limited=limited,
         )
 
+    def _effective_targets(self, zones: tuple[float, ...], heating: bool) -> list[float]:
+        """Where each zone should sit: the target, or the gradient cap if lower."""
+        s = self.settings
+        if heating:
+            trailing = min(zones)
+            return [
+                self.target_c if z <= trailing else min(self.target_c, trailing + s.max_gradient_c)
+                for z in zones
+            ]
+        trailing = max(zones)
+        return [
+            self.target_c if z >= trailing else max(self.target_c, trailing - s.max_gradient_c)
+            for z in zones
+        ]
+
+    def _update_trims(self, zones: tuple[float, ...], heating: bool, dt_s: float) -> None:
+        s = self.settings
+        for index, (zone, goal) in enumerate(zip(zones, self._effective_targets(zones, heating))):
+            trim = self.trims_c[index] + s.trim_rate_per_min / 60.0 * (goal - zone) * dt_s
+            self.trims_c[index] = clamp(trim, -s.trim_limit_c, s.trim_limit_c)
+
     def _zone_setpoints(
         self, zones: tuple[float, ...], heating: bool
     ) -> tuple[tuple[float, float, float], tuple[bool, bool, bool]]:
@@ -184,20 +219,24 @@ class ZoneCoordinator:
         limited = []
         # The trailing zone (coldest when heating) is never capped: it keeps
         # the full master setpoint so it gets maximum drive to catch up.
+        # Offsets and trims shift both the wanted setpoint and the cap, since
+        # the cap is a limit on the zone's temperature, not its setpoint.
         if heating:
             trailing = min(zones)
             ceiling = trailing + s.max_gradient_c
             for index in range(3):
-                wanted = master + s.zone_offsets_c[index]
-                capped = wanted if zones[index] <= trailing else min(wanted, ceiling + s.zone_offsets_c[index])
+                shift = s.zone_offsets_c[index] + self.trims_c[index]
+                wanted = master + shift
+                capped = wanted if zones[index] <= trailing else min(wanted, ceiling + shift)
                 setpoints.append(capped)
                 limited.append(capped < wanted)
         else:
             trailing = max(zones)
             floor = trailing - s.max_gradient_c
             for index in range(3):
-                wanted = master + s.zone_offsets_c[index]
-                capped = wanted if zones[index] >= trailing else max(wanted, floor + s.zone_offsets_c[index])
+                shift = s.zone_offsets_c[index] + self.trims_c[index]
+                wanted = master + shift
+                capped = wanted if zones[index] >= trailing else max(wanted, floor + shift)
                 setpoints.append(capped)
                 limited.append(capped > wanted)
         return tuple(setpoints), tuple(limited)

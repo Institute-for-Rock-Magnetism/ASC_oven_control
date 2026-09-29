@@ -91,7 +91,25 @@ lab PC's COM4 (Silicon Labs CP210x USB-UART → RS-485).
    at 25 °C). Stop set every zone to 0 °C, confirmed by read-back and by
    the ramping set point register 203 following to 0.
 
+7. **Set point source (first heated attempt).** All three controllers
+   were in **Remote** set point mode (reg 316 = 1): the active set point
+   came from Input 2 (0–5 V, scaled 0–800 °C, monitor reg 202), driven
+   by the oven's onboard timer/controller, which also switches the fan.
+   Writes to reg 300 were stored but ignored, and when the onboard timer
+   reached 0 the remote set point fell to ~2 °C (outputs 0 %). Switching
+   to Local (316 = 0) gave the PC control: with SP = PV + 5 °C the
+   outputs read 10.8 / ~8 / 10.8 %, matching the 47/65/47 °C prop
+   bands. Runs now switch every zone to Local (at set point 0 first);
+   Setup → "Hand set point to oven panel" switches back to Remote. The
+   earlier "outputs at 100 %" reading was the onboard remote set point.
+   The fan is not wired to the Watlows; it is switched by the onboard
+   timer circuit.
+
 ## Remaining commissioning steps
+
+0. Confirm whether the onboard timer also gates heater power (outputs
+   above 0 % but no temperature rise ⇒ it does); if so, set it longer
+   than the run.
 
 1. First heated run at a low target (e.g. 100 °C, 5 °C/min) in hardware
    mode, watching all three zones and the gradient readout. The heater

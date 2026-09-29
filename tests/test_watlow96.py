@@ -115,6 +115,29 @@ class WatlowOvenBackendTest(unittest.TestCase):
         backend.write_setpoints((98.0, 97.0, 150.0))
         self.assertEqual(bus.writes_to(3, 300), [150])
 
+    def test_take_control_switches_remote_zones_to_local(self):
+        backend, bus = self.make()
+        for address in (1, 3):
+            bus.slaves[address][316] = 1  # oven panel drives zones 1 and 3
+        backend.connect()
+        reading = backend.read()
+        self.assertEqual(reading.remote, (True, False, True))
+        self.assertEqual(reading.setpoints_c, (2.0, 97.0, 2.0))  # remote SP monitor
+        self.assertEqual(backend.take_control(), ["Zone 1", "Zone 3"])
+        for address in (1, 3):
+            self.assertEqual(bus.slaves[address][316], 0)
+            self.assertEqual(bus.slaves[address][300], 0)  # never switches onto a stale SP
+        self.assertEqual(bus.slaves[2][300], 97)  # already local: untouched
+        self.assertEqual(backend.read().remote, (False, False, False))
+
+    def test_release_control_hands_back_to_panel(self):
+        backend, bus = self.make()
+        backend.connect()
+        backend.release_control()
+        for address in (1, 2, 3):
+            self.assertEqual(bus.slaves[address][316], 1)
+            self.assertEqual(bus.slaves[address][300], 0)
+
     def test_safe_shutdown_drives_all_zones_to_range_low(self):
         backend, bus = self.make()
         backend.connect()

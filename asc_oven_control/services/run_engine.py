@@ -133,6 +133,12 @@ class _RunWorker(QObject):
         try:
             self.backend.connect()
             try:
+                taken = self.backend.take_control()
+                if taken:
+                    self.state_changed.emit(
+                        str(self.phase),
+                        f"Took set point control from the oven panel: {', '.join(taken)} now Local",
+                    )
                 outcome = self._loop()
             finally:
                 self._shutdown_heaters()

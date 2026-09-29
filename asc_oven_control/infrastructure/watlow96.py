@@ -44,6 +44,12 @@ REG_AUTO_MANUAL = 301
 REG_AUTOTUNE_SETPOINT = 304
 REG_AUTOTUNE = 305
 REG_CLEAR_INPUT_ERRORS = 311
+# Local (0) / Remote (1) set point. Found set to Remote on all three zones
+# (2026-09-29): the oven's onboard timer/controller drives the set point
+# through Input 2 (0-5 V scaled 0-800 C, monitor reg 202), and reg 300 is
+# ignored until the controller is switched to Local.
+REG_LOCAL_REMOTE = 316
+REG_REMOTE_SETPOINT = 202
 REG_CLEAR_ALARMS = 331
 # PID set 1 (SI units when reg 900 = 2; US units use 502/504)
 REG_PROP_BAND = 500
@@ -112,14 +118,16 @@ class Identity:
     si_pid_units: bool
     range_low: int
     range_high: int
+    remote_setpoint: bool = False
 
 
 @dataclass(frozen=True, slots=True)
 class ZoneStatus:
     process_c: float
-    setpoint_c: float
+    setpoint_c: float  # the set point the controller is actually using
     power_pct: float | None
     alarms: tuple[str, ...]
+    remote: bool = False  # True: set point comes from Input 2 (oven panel)
 
 
 @dataclass(frozen=True, slots=True)
@@ -156,6 +164,7 @@ class Watlow96:
         range_low, range_high = (to_s16(v) for v in c.read_registers(a, REG_RANGE_LOW, 2))
         decimals = c.read_register(a, REG_DECIMAL)
         pid_units, temp_units = c.read_registers(a, REG_PID_UNITS, 2)
+        remote = c.read_register(a, REG_LOCAL_REMOTE) == 1
         identity = Identity(
             model=model,
             software=f"{software_id} rev {revision / 100:.2f}",
@@ -164,6 +173,7 @@ class Watlow96:
             si_pid_units=pid_units == 2,
             range_low=range_low,
             range_high=range_high,
+            remote_setpoint=remote,
         )
         if not identity.celsius:
             raise Watlow96Error(f"slave {a}: controller is set to °F (reg 901); set it to °C")
@@ -184,10 +194,11 @@ class Watlow96:
     # -------------------------------------------------------------- status
 
     def read_status(self) -> ZoneStatus:
-        self._require_identity()
+        identity = self._require_identity()
         c, a = self.client, self.address
         process_raw, input_error, _unused, output_raw = c.read_registers(a, REG_PROCESS, 4)
-        setpoint_raw = c.read_register(a, REG_SETPOINT)
+        remote = identity.remote_setpoint
+        setpoint_raw = c.read_register(a, REG_REMOTE_SETPOINT if remote else REG_SETPOINT)
         alarm2 = c.read_register(a, REG_ALARM2_STATUS)
         alarms = []
         if input_error:
@@ -200,7 +211,28 @@ class Watlow96:
             setpoint_c=to_s16(setpoint_raw) / self._scale,
             power_pct=None if output == UNAVAILABLE else output / 10.0,
             alarms=tuple(alarms),
+            remote=remote,
         )
+
+    # ------------------------------------------------ set point source
+
+    def set_local_setpoint(self) -> None:
+        """Make reg 300 (PC-written set point) the active set point."""
+        self._set_source(0)
+
+    def set_remote_setpoint(self) -> None:
+        """Hand the set point back to Input 2 (the oven's own panel/timer)."""
+        self._set_source(1)
+
+    def _set_source(self, value: int) -> None:
+        from dataclasses import replace
+
+        identity = self._require_identity()
+        self.client.write_register(self.address, REG_LOCAL_REMOTE, value)
+        actual = self.client.read_register(self.address, REG_LOCAL_REMOTE)
+        if actual != value:
+            raise Watlow96Error(f"slave {self.address}: local/remote reads {actual} after writing {value}")
+        self.identity = replace(identity, remote_setpoint=value == 1)
 
     def read_errors(self) -> tuple[str, ...]:
         c, a = self.client, self.address
