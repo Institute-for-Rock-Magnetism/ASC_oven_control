@@ -1,8 +1,8 @@
 """Application bootstrap: configuration, logging, and window construction.
 
 Runtime files (config, run database) live in the platform application-data
-directory unless ``ASC_OVEN_HOME`` is set. The application always starts in
-simulation mode; see ``LABVIEW_MIGRATION.md`` for the hardware boundary.
+directory unless ``ASC_OVEN_HOME`` is set. The application starts in
+simulation mode until hardware mode is saved from the Setup page.
 """
 
 from __future__ import annotations
@@ -76,7 +76,7 @@ def create_application(argv: list[str] | None = None) -> tuple[QApplication, Mai
     home.mkdir(parents=True, exist_ok=True)
     config = load_config(home)
     logger = RunLogger(home / "asc_oven_runs.db")
-    window = MainWindow(config, logger)
+    window = MainWindow(config, logger, config_path=home / "config" / "application.json")
     return app, window
 
 

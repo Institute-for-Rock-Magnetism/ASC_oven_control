@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
 )
 
 from asc_oven_control.domain.models import Atmosphere, DomainValidationError, RunProfile
+from asc_oven_control.domain.zone_control import GradientSettings
 from asc_oven_control.infrastructure.legacy_table import (
     LegacyRow,
     LegacyTable,
@@ -39,7 +40,7 @@ from asc_oven_control.infrastructure.legacy_table import (
     parse_legacy_file,
     write_legacy_file,
 )
-from asc_oven_control.infrastructure.watlow_protocol import WatlowCommands
+from asc_oven_control.infrastructure.modbus_rtu import read_request, write_request
 from asc_oven_control.ui.widgets import Card, MetricCard, button, pill
 
 
@@ -64,21 +65,34 @@ class SetupPage(QWidget):
 
         connection = Card(
             "Instrument connection",
-            "The LabVIEW program talked to the Watlow controller over NI-VISA serial "
-            "(9600 baud, 8N1, no flow control) with a CRC-framed register protocol. "
-            "The exact register map is not yet verified, so this build runs in "
-            "simulation only and never opens a physical port.",
+            "Three Watlow Series 96 controllers (one per zone) on one RS-485 bus, "
+            "Modbus RTU at 9600 baud 8N1. Test connection only reads registers.",
         )
-        simulation_note = QLabel("SIMULATION SAFE · No physical ports opened")
-        simulation_note.setObjectName("recoveredNote")
-        connection.body.addWidget(simulation_note)
         serial_form = QFormLayout()
         serial_form.setSpacing(10)
-        serial_form.addRow("Protocol", QLabel("Watlow CRC register (recovered)"))
-        serial_form.addRow("Framing", QLabel("9600 baud · 8 data bits · no parity · 1 stop bit"))
-        serial_form.addRow("Mode", QLabel("Oven simulation (deterministic 3-zone model)"))
+        self.mode_combo = QComboBox()
+        self.mode_combo.addItems(["Simulation", "Watlow hardware"])
+        self.port_combo = QComboBox()
+        self.port_combo.setEditable(True)
+        self.addresses_label = QLabel("")
+        serial_form.addRow("Mode", self.mode_combo)
+        serial_form.addRow("Serial port", self.port_combo)
+        serial_form.addRow("Zone addresses", self.addresses_label)
+        serial_form.addRow("Framing", QLabel("Modbus RTU · 9600 8N1"))
         connection.body.addLayout(serial_form)
+        connection_buttons = QHBoxLayout()
+        connection_buttons.addWidget(button("Rescan ports", "quiet", self._scan_ports))
+        connection_buttons.addWidget(button("Test connection", "secondary", self._test_connection))
+        connection_buttons.addWidget(button("Save connection", "primary", self._save_connection))
+        connection_buttons.addStretch()
+        connection.body.addLayout(connection_buttons)
+        self.connection_result = QLabel("")
+        self.connection_result.setObjectName("recoveredNote")
+        self.connection_result.setWordWrap(True)
+        self.connection_result.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        connection.body.addWidget(self.connection_result)
         grid.addWidget(connection, 0, 0)
+        self._load_connection()
 
         profile = Card("Run identity", "These fields travel with every logged sample.")
         profile_form = QFormLayout()
@@ -142,24 +156,43 @@ class SetupPage(QWidget):
         field_card.body.addLayout(field_form)
         grid.addWidget(field_card, 2, 0)
 
-        pid = Card(
-            "Watlow PID (reference)",
-            "Recovered from PID_globals.vi (proportional band, integral, derivative). "
-            "Shown for reference only — calibrated values are unverified.",
+        gradient = Card(
+            "Gradient control",
+            "Supervisory layer over the three Watlow PID loops. The ramp waits for a "
+            "lagging zone, leading zones are capped to the coldest zone plus the "
+            "allowed gradient, the ramp slows near the target, and the soak clock runs "
+            "only while every zone is in band.",
         )
-        pid_form = QFormLayout()
-        pid_form.setSpacing(12)
-        self.prop_band_spin = self._temperature_spin(100.0, 0.0, 10000.0, "")
-        self.integral_spin = self._temperature_spin(10.0, 0.0, 10000.0, " s")
-        self.derivative_spin = self._temperature_spin(0.0, 0.0, 10000.0, " s")
+        gradient_form = QFormLayout()
+        gradient_form.setSpacing(12)
+        defaults = GradientSettings()
+        self.hold_band_spin = self._temperature_spin(defaults.hold_band_c, 0.5, 100.0, " °C")
+        self.max_gradient_spin = self._temperature_spin(defaults.max_gradient_c, 0.5, 100.0, " °C")
+        self.approach_band_spin = self._temperature_spin(defaults.approach_band_c, 0.0, 300.0, " °C")
+        self.approach_rate_spin = QSpinBox()
+        self.approach_rate_spin.setRange(5, 100)
+        self.approach_rate_spin.setValue(round(defaults.approach_rate_fraction * 100))
+        self.approach_rate_spin.setSuffix(" % of ramp rate")
+        self.soak_band_spin = self._temperature_spin(defaults.soak_band_c, 0.5, 50.0, " °C")
+        offsets_row = QHBoxLayout()
+        self.offset_spins = []
+        for index in range(3):
+            spin = self._temperature_spin(0.0, -50.0, 50.0, " °C")
+            spin.setToolTip(f"Fixed trim added to the Zone {index + 1} setpoint")
+            self.offset_spins.append(spin)
+            offsets_row.addWidget(spin)
         for label, widget in (
-            ("Prop band", self.prop_band_spin),
-            ("Integral", self.integral_spin),
-            ("Derivative", self.derivative_spin),
+            ("Ramp hold band", self.hold_band_spin),
+            ("Max zone gradient", self.max_gradient_spin),
+            ("Approach band", self.approach_band_spin),
+            ("Approach rate", self.approach_rate_spin),
+            ("Soak band", self.soak_band_spin),
         ):
-            pid_form.addRow(label, widget)
-        pid.body.addLayout(pid_form)
-        grid.addWidget(pid, 3, 0)
+            gradient_form.addRow(label, widget)
+        gradient_form.addRow("Zone 1/2/3 trim", offsets_row)
+        gradient.body.addLayout(gradient_form)
+        grid.addWidget(gradient, 3, 0)
+        self.load_form_state()
 
         grid.setColumnStretch(0, 1)
         grid.setColumnStretch(1, 1)
@@ -175,6 +208,163 @@ class SetupPage(QWidget):
         spin.setValue(value)
         spin.setSuffix(suffix)
         return spin
+
+    # ------------------------------------------------------------ form state
+
+    def _form_widgets(self) -> dict:
+        widgets = {
+            "operator": self.operator_edit,
+            "batch_id": self.batch_edit,
+            "sample_id": self.sample_edit,
+            "user_name": self.user_edit,
+            "target_c": self.target_spin,
+            "ramp_c_per_min": self.ramp_spin,
+            "soak_s": self.soak_spin,
+            "alarm_high_c": self.alarm_high_spin,
+            "alarm_low_c": self.alarm_low_spin,
+            "field_uT": self.field_amplitude_spin,
+            "hold_band_c": self.hold_band_spin,
+            "max_gradient_c": self.max_gradient_spin,
+            "approach_band_c": self.approach_band_spin,
+            "approach_rate_pct": self.approach_rate_spin,
+            "soak_band_c": self.soak_band_spin,
+        }
+        for index, spin in enumerate(self.offset_spins):
+            widgets[f"zone{index + 1}_trim_c"] = spin
+        return widgets
+
+    def _form_state_path(self):
+        path = getattr(self.window, "config_path", None)
+        return None if path is None else path.with_name("last_setup.json")
+
+    def form_state(self) -> dict:
+        state = {}
+        for key, widget in self._form_widgets().items():
+            state[key] = widget.text() if isinstance(widget, QLineEdit) else widget.value()
+        state["atmosphere"] = self.atmosphere_combo.currentText()
+        state["field_enabled"] = self.field_check.isChecked()
+        state["notes"] = self.notes_edit.toPlainText()
+        return state
+
+    def save_form_state(self) -> None:
+        """Remember the form so the next launch starts from the last run."""
+        path = self._form_state_path()
+        if path is None:
+            return
+        from asc_oven_control.infrastructure.persistence import atomic_write_json
+
+        try:
+            atomic_write_json(path, self.form_state(), create_backup=False)
+        except OSError:
+            pass
+
+    def load_form_state(self) -> None:
+        path = self._form_state_path()
+        if path is None or not path.exists():
+            return
+        import json
+
+        try:
+            state = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return
+        for key, widget in self._form_widgets().items():
+            if key not in state:
+                continue
+            value = state[key]
+            try:
+                if isinstance(widget, QLineEdit):
+                    widget.setText(str(value))
+                elif isinstance(widget, QSpinBox):
+                    widget.setValue(int(value))
+                else:
+                    widget.setValue(float(value))
+            except (TypeError, ValueError):
+                continue
+        if state.get("atmosphere") in [str(a) for a in Atmosphere]:
+            self.atmosphere_combo.setCurrentText(state["atmosphere"])
+        self.field_check.setChecked(bool(state.get("field_enabled", False)))
+        self.notes_edit.setPlainText(str(state.get("notes", "")))
+
+    # ------------------------------------------------------------ connection
+
+    def _load_connection(self) -> None:
+        config = self.window.config
+        self.mode_combo.setCurrentIndex(0 if config.simulation_mode else 1)
+        self._scan_ports()
+        if config.serial.port:
+            self.port_combo.setCurrentText(config.serial.port)
+        self.addresses_label.setText(", ".join(str(a) for a in config.zone_addresses))
+
+    def _scan_ports(self) -> None:
+        current = self.port_combo.currentText()
+        self.port_combo.clear()
+        try:
+            from serial.tools import list_ports
+
+            ports = sorted(list_ports.comports(), key=lambda p: p.device)
+        except Exception:  # noqa: BLE001 - pyserial missing or enumeration failed
+            ports = []
+        for port in ports:
+            self.port_combo.addItem(port.device)
+            self.port_combo.setItemData(self.port_combo.count() - 1, port.description, Qt.ItemDataRole.ToolTipRole)
+        if current:
+            self.port_combo.setCurrentText(current)
+
+    def connection_config(self):
+        """The window config with this card's mode and port applied."""
+        from dataclasses import replace
+
+        config = self.window.config
+        port = self.port_combo.currentText().strip() or None
+        return replace(
+            config,
+            simulation_mode=self.mode_combo.currentIndex() == 0,
+            serial=replace(config.serial, port=port),
+        )
+
+    def _test_connection(self) -> None:
+        from dataclasses import replace
+
+        if self.window.engine.active and not self.window.config.simulation_mode:
+            self.connection_result.setText("A hardware run is active; the port is in use.")
+            return
+        config = replace(self.connection_config(), simulation_mode=False)
+        if config.serial.port is None:
+            self.connection_result.setText("Choose a serial port first.")
+            return
+        from asc_oven_control.services.oven_backend import probe_hardware
+
+        self.connection_result.setText(f"Testing {config.serial.port}…")
+        self.connection_result.repaint()
+        try:
+            lines = probe_hardware(config)
+        except Exception as exc:  # noqa: BLE001 - show any failure to the operator
+            self.connection_result.setText(f"Connection failed on {config.serial.port}: {exc}")
+            return
+        self.connection_result.setText("\n".join(lines))
+
+    def _save_connection(self) -> None:
+        if self.window.engine.active:
+            QMessageBox.information(self, "Connection", "Stop the active run before changing the connection.")
+            return
+        config = self.connection_config()
+        if not config.simulation_mode and config.serial.port is None:
+            QMessageBox.warning(self, "Connection", "Hardware mode needs a serial port.")
+            return
+        self.window.apply_config(config)
+        mode = "simulation" if config.simulation_mode else f"hardware on {config.serial.port}"
+        self.connection_result.setText(f"Saved: {mode}")
+
+    def collect_settings(self) -> GradientSettings:
+        return GradientSettings(
+            hold_band_c=self.hold_band_spin.value(),
+            max_gradient_c=self.max_gradient_spin.value(),
+            approach_band_c=self.approach_band_spin.value(),
+            approach_rate_fraction=self.approach_rate_spin.value() / 100.0,
+            soak_band_c=self.soak_band_spin.value(),
+            zone_offsets_c=tuple(spin.value() for spin in self.offset_spins),
+        )
 
     def collect_profile(self) -> RunProfile:
         """Build a validated RunProfile from the form; raises on bad input."""
@@ -215,7 +405,7 @@ class LiveControlPage(QWidget):
             MetricCard("Zone 1", "-- °C", "#56D6C9"),
             MetricCard("Zone 2", "-- °C", "#F4A261"),
             MetricCard("Zone 3", "-- °C", "#5FA8D3"),
-            MetricCard("Current", "-- A", "#8CA4AD"),
+            MetricCard("Zone gradient", "-- °C", "#8CA4AD"),
         ]
         for column, metric in enumerate(self.zone_metrics):
             metrics.addWidget(metric, 0, column)
@@ -237,8 +427,13 @@ class LiveControlPage(QWidget):
         self.alarm_label.setObjectName("alarmClear")
         status_row.addWidget(self.alarm_label)
         layout.addLayout(status_row)
+        self.events: list[str] = []
+        self.event_label = QLabel("")
+        self.event_label.setObjectName("muted")
+        self.event_label.setWordWrap(True)
+        layout.addWidget(self.event_label)
 
-        chart_card = Card("Temperature trend", "Three zones, commanded setpoint, and heater current")
+        chart_card = Card("Temperature trend", "Three zones and the master ramp setpoint")
         self.chart = window.chart
         chart_card.body.addWidget(self.chart, 1)
         layout.addWidget(chart_card, 1)
@@ -285,6 +480,13 @@ class LiveControlPage(QWidget):
         spin.setSuffix(suffix)
         return spin
 
+    def add_event(self, message: str) -> None:
+        if message == "Run started":
+            self.events = []
+        self.events.append(f"{time.strftime('%H:%M:%S')}  {message}")
+        self.events = self.events[-4:]
+        self.event_label.setText("   ·   ".join(self.events))
+
     def refresh(self) -> None:
         snapshot = self.window.engine.snapshot
         running = self.window.engine.active
@@ -296,14 +498,28 @@ class LiveControlPage(QWidget):
 
     def _apply_snapshot(self, snapshot: dict) -> None:
         zones = snapshot["zones"]
-        for metric, value in zip(self.zone_metrics[:3], zones):
-            metric.set_value(f"{value:.1f} °C")
-        current = snapshot["current_a"]
-        self.zone_metrics[3].set_value(f"{current:.2f} A")
+        setpoints = snapshot.get("zone_setpoints", (None, None, None))
+        powers = snapshot.get("zone_power", (None, None, None))
+        for metric, value, setpoint, power in zip(self.zone_metrics[:3], zones, setpoints, powers):
+            metric.set_value(f"{value:.0f} °C")
+            parts = []
+            if setpoint is not None:
+                parts.append(f"SP {setpoint:.0f} °C")
+            if power is not None:
+                parts.append(f"out {power:.0f} %")
+            metric.set_detail(" · ".join(parts))
+        self.zone_metrics[3].set_value(f"{snapshot.get('gradient_c', max(zones) - min(zones)):.0f} °C")
+        control_phase = snapshot.get("control_phase", "")
+        soak = snapshot.get("soak_elapsed_s", 0.0)
+        self.zone_metrics[3].set_detail(
+            f"{control_phase} · soak {time.strftime('%H:%M:%S', time.gmtime(soak))}" if control_phase else ""
+        )
         self.phase_pill.setText(snapshot["phase"])
         elapsed = time.strftime("%H:%M:%S", time.gmtime(snapshot["elapsed_sec"]))
         self.elapsed_label.setText(f"Elapsed {elapsed}")
-        self.setpoint_label.setText(f"Setpoint {snapshot['output_setpoint_c']:.1f} °C")
+        self.setpoint_label.setText(
+            f"Ramp setpoint {snapshot['output_setpoint_c']:.1f} °C → target {snapshot['target_setpoint_c']:.0f} °C"
+        )
         field = snapshot.get("field_enabled", False)
         self.field_pill.setText(
             f"Field ON · {snapshot.get('field_amplitude_uT', 0.0):.0f} µT" if field else "Field OFF"
@@ -388,7 +604,7 @@ class DataPage(QWidget):
         )
         if not target:
             return
-        rows = self.window.logger.get_samples(run_id, limit=10_000_000)
+        rows = self.window.logger.get_detailed_samples(run_id)
         from asc_oven_control.infrastructure.persistence import export_samples_csv
 
         export_samples_csv(rows, target)
@@ -476,6 +692,279 @@ class LegacyPreviewDialog(QDialog):
         layout.addWidget(close_button, 0, Qt.AlignmentFlag.AlignRight)
 
 
+class TuningPage(QWidget):
+    """Read, edit and auto-tune the PID set of each zone's Series 96."""
+
+    AUTOTUNE_POLL_MS = 5000
+
+    def __init__(self, window) -> None:
+        super().__init__()
+        self.window = window
+        body = QWidget()
+        layout = QVBoxLayout(body)
+        layout.setContentsMargins(0, 0, 8, 8)
+        layout.setSpacing(18)
+
+        guide = Card(
+            "Why tuning matters for the gradient",
+            "Each zone's Watlow runs its own PID loop. With a wide proportional band and a "
+            "long integral, a zone must sit far below a moving setpoint before it draws "
+            "enough power, and zones with different heat loads sit different distances "
+            "behind. That difference is the ramp gradient. Tighter, similar loops on all "
+            "three zones plus the supervisory gradient control on the Setup page keep the "
+            "zones together. Settings read from the oven on 2026-09-29: prop band 47/65/47 °C, "
+            "integral 12.5/60/12.5 min/repeat, derivative 0.90/2.25/0.90 min.",
+        )
+        layout.addWidget(guide)
+
+        pid_card = Card(
+            "PID set 1 per zone",
+            "SI units (reg 900 = 2): prop band in °C, integral in minutes per repeat, "
+            "derivative in minutes. Values are only written when you press Write.",
+        )
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(14)
+        grid.setVerticalSpacing(10)
+        for column, heading in enumerate(("", "Prop band", "Integral", "Derivative", "Cycle time", "")):
+            label = QLabel(heading)
+            label.setObjectName("muted")
+            grid.addWidget(label, 0, column)
+        self.pid_rows = []
+        for index in range(3):
+            band = self._spin(1.0, 999.0, 0, " °C")
+            integral = self._spin(0.0, 99.99, 2, " min/rep")
+            derivative = self._spin(0.0, 9.99, 2, " min")
+            cycle = QLabel("--")
+            write = button(f"Write Zone {index + 1}", "secondary", lambda _=False, i=index: self._write_pid(i))
+            grid.addWidget(QLabel(f"Zone {index + 1}"), index + 1, 0)
+            grid.addWidget(band, index + 1, 1)
+            grid.addWidget(integral, index + 1, 2)
+            grid.addWidget(derivative, index + 1, 3)
+            grid.addWidget(cycle, index + 1, 4)
+            grid.addWidget(write, index + 1, 5)
+            self.pid_rows.append((band, integral, derivative, cycle))
+        pid_card.body.addLayout(grid)
+        actions = QHBoxLayout()
+        actions.addWidget(button("Read from controllers", "primary", self._read_pids))
+        actions.addStretch()
+        pid_card.body.addLayout(actions)
+        layout.addWidget(pid_card)
+
+        tune_card = Card(
+            "Auto-tune (all zones together)",
+            "Sets all three zones to the tuning temperature and starts the Series 96 "
+            "auto-tune on each. The controllers oscillate around the auto-tune set point "
+            "(a percentage of the tuning temperature) and store new PID values when done. "
+            "Tune all zones together near the working temperature so the coupling between "
+            "zones matches a real run. Heater power must be on. The oven stays at the "
+            "tuning temperature afterwards until you turn the heaters off.",
+        )
+        tune_form = QFormLayout()
+        self.tune_temp_spin = self._spin(50.0, 800.0, 0, " °C")
+        self.tune_temp_spin.setValue(500.0)
+        self.tune_percent_spin = QSpinBox()
+        self.tune_percent_spin.setRange(50, 150)
+        self.tune_percent_spin.setValue(90)
+        self.tune_percent_spin.setSuffix(" % of tuning temperature")
+        tune_form.addRow("Tuning temperature", self.tune_temp_spin)
+        tune_form.addRow("Auto-tune set point", self.tune_percent_spin)
+        tune_card.body.addLayout(tune_form)
+        tune_actions = QHBoxLayout()
+        tune_actions.addWidget(button("Start auto-tune", "primary", self._start_autotune))
+        tune_actions.addWidget(button("Cancel auto-tune", "secondary", self._cancel_autotune))
+        tune_actions.addWidget(button("All heaters off", "danger", self._heaters_off))
+        tune_actions.addStretch()
+        tune_card.body.addLayout(tune_actions)
+        layout.addWidget(tune_card)
+
+        self.status_label = QLabel("")
+        self.status_label.setObjectName("recoveredNote")
+        self.status_label.setWordWrap(True)
+        self.status_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        layout.addWidget(self.status_label)
+        layout.addStretch()
+
+        from PySide6.QtCore import QTimer
+
+        self.tune_timer = QTimer(self)
+        self.tune_timer.setInterval(self.AUTOTUNE_POLL_MS)
+        self.tune_timer.timeout.connect(self._poll_autotune)
+
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.addWidget(_scroll_page(body))
+
+    @staticmethod
+    def _spin(minimum: float, maximum: float, decimals: int, suffix: str) -> QDoubleSpinBox:
+        spin = QDoubleSpinBox()
+        spin.setRange(minimum, maximum)
+        spin.setDecimals(decimals)
+        spin.setSuffix(suffix)
+        return spin
+
+    def refresh(self) -> None:
+        if self.window.config.simulation_mode:
+            self.status_label.setText("Simulation mode: switch to Watlow hardware on the Setup page to tune.")
+
+    # ----------------------------------------------------------- hardware
+
+    def _session(self):
+        """Open a short hardware session, or explain why not."""
+        from asc_oven_control.services.oven_backend import WatlowOven
+
+        config = self.window.config
+        if config.simulation_mode or config.serial.port is None:
+            self.status_label.setText("Select and save Watlow hardware on the Setup page first.")
+            return None
+        if self.window.engine.active:
+            self.status_label.setText("A run is active; tuning is available when the oven is idle.")
+            return None
+        backend = WatlowOven(config)
+        try:
+            backend.connect()
+        except Exception as exc:  # noqa: BLE001
+            self.status_label.setText(f"Cannot open {config.serial.port}: {exc}")
+            return None
+        return backend
+
+    def _read_pids(self) -> None:
+        backend = self._session()
+        if backend is None:
+            return
+        try:
+            lines = []
+            for index, zone in enumerate(backend.zones):
+                pid = zone.read_pid()
+                band, integral, derivative, cycle = self.pid_rows[index]
+                band.setValue(pid.prop_band_c)
+                integral.setValue(pid.integral_min)
+                derivative.setValue(pid.derivative_min)
+                cycle.setText(f"{pid.cycle_time_s:g} s")
+                errors = zone.read_errors()
+                lines.append(
+                    f"Zone {index + 1}: PB {pid.prop_band_c:.0f} °C · Ti {pid.integral_min:.2f} min/rep"
+                    f" · Td {pid.derivative_min:.2f} min" + (f" · {', '.join(errors)}" if errors else "")
+                )
+            self.status_label.setText("\n".join(lines))
+        except Exception as exc:  # noqa: BLE001
+            self.status_label.setText(f"Read failed: {exc}")
+        finally:
+            backend.close()
+
+    def _write_pid(self, index: int) -> None:
+        from asc_oven_control.infrastructure.watlow96 import PidSettings
+
+        band, integral, derivative, _cycle = self.pid_rows[index]
+        answer = QMessageBox.question(
+            self,
+            "Write PID",
+            f"Write to Zone {index + 1}: prop band {band.value():.0f} °C, integral "
+            f"{integral.value():.2f} min/repeat, derivative {derivative.value():.2f} min?",
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        backend = self._session()
+        if backend is None:
+            return
+        try:
+            zone = backend.zones[index]
+            current = zone.read_pid()
+            zone.write_pid(PidSettings(band.value(), integral.value(), derivative.value(), current.cycle_time_s))
+            written = zone.read_pid()
+            self.status_label.setText(
+                f"Zone {index + 1} PID now PB {written.prop_band_c:.0f} °C · Ti {written.integral_min:.2f}"
+                f" · Td {written.derivative_min:.2f} (was PB {current.prop_band_c:.0f} · Ti "
+                f"{current.integral_min:.2f} · Td {current.derivative_min:.2f})"
+            )
+        except Exception as exc:  # noqa: BLE001
+            self.status_label.setText(f"Write failed: {exc}")
+        finally:
+            backend.close()
+
+    def _start_autotune(self) -> None:
+        temperature = round(self.tune_temp_spin.value())
+        percent = self.tune_percent_spin.value()
+        answer = QMessageBox.question(
+            self,
+            "Start auto-tune",
+            f"Set all three zones to {temperature} °C and auto-tune around "
+            f"{temperature * percent / 100:.0f} °C? The oven will heat.",
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        backend = self._session()
+        if backend is None:
+            return
+        try:
+            for zone in backend.zones:
+                zone.write_setpoint(temperature)
+            for zone in backend.zones:
+                zone.start_autotune(percent)
+            self.status_label.setText("Auto-tune running on all zones…")
+            self.tune_timer.start()
+        except Exception as exc:  # noqa: BLE001
+            self.status_label.setText(f"Auto-tune start failed: {exc}")
+        finally:
+            backend.close()
+
+    def _poll_autotune(self) -> None:
+        backend = self._session()
+        if backend is None:
+            self.tune_timer.stop()
+            return
+        try:
+            active = []
+            parts = []
+            for index, zone in enumerate(backend.zones):
+                status = zone.read_status()
+                running = zone.autotune_active()
+                active.append(running)
+                parts.append(
+                    f"Zone {index + 1}: {status.process_c:.0f} °C, out {status.power_pct or 0:.0f} %, "
+                    + ("tuning" if running else "done")
+                )
+            self.status_label.setText("\n".join(parts))
+        except Exception as exc:  # noqa: BLE001
+            self.status_label.setText(f"Auto-tune poll failed: {exc}")
+            active = [True]
+        finally:
+            backend.close()
+        if not any(active):
+            self.tune_timer.stop()
+            self._read_pids()
+            self.status_label.setText(self.status_label.text() + "\nAuto-tune complete; new PID values shown above.")
+
+    def _cancel_autotune(self) -> None:
+        self.tune_timer.stop()
+        backend = self._session()
+        if backend is None:
+            return
+        try:
+            for zone in backend.zones:
+                zone.cancel_autotune()
+            self.status_label.setText("Auto-tune cancelled; controllers keep their previous PID values.")
+        except Exception as exc:  # noqa: BLE001
+            self.status_label.setText(f"Cancel failed: {exc}")
+        finally:
+            backend.close()
+
+    def _heaters_off(self) -> None:
+        self.tune_timer.stop()
+        backend = self._session()
+        if backend is None:
+            return
+        try:
+            for zone in backend.zones:
+                if zone.autotune_active():
+                    zone.cancel_autotune()
+            backend.safe_shutdown()
+            self.status_label.setText("All zones set to their lowest set point (heaters off).")
+        except Exception as exc:  # noqa: BLE001
+            self.status_label.setText(f"Heaters-off failed: {exc}")
+        finally:
+            backend.close()
+
+
 class InstrumentPage(QWidget):
     """Read-only reference: recovered protocol evidence and configuration."""
 
@@ -488,23 +977,22 @@ class InstrumentPage(QWidget):
         layout.setSpacing(18)
 
         protocol = Card(
-            "Recovered Watlow protocol",
-            "What the LabVIEW block diagrams establish, and what still needs hardware "
-            "verification. See LABVIEW_MIGRATION.md for the full record.",
+            "Watlow Series 96 over Modbus RTU (verified on hardware)",
+            "Verified 2026-09-29 on COM4 (Silicon Labs CP210x USB-UART to RS-485). "
+            "See LABVIEW_MIGRATION.md for the evidence record.",
         )
         evidence = QLabel(
-            "Frame parts recovered from Calc CRC-sub.vi: Command, Adress, Reg H, Reg L, "
-            "Data H, Data L, Number of Byte, CRC (H byte / L byte). The CRC is LSB-first "
-            "with a right-shift register (D0–D15), i.e. the Modbus RTU CRC-16 "
-            "(poly 0xA001, init 0xFFFF).\n\n"
-            "Watlow Read.vi and Watlow Write.vi send these frames over NI-VISA serial "
-            "configured at 9600 baud, 8 data bits, no parity, one stop bit, no flow "
-            "control. Change SP.vi writes the Set Point parameter, Adjust_ramp_rate.vi "
-            "the ramp rate, and stop_program.vi stops the run.\n\n"
-            "NOT recovered: controller slave address, register addresses, word order, "
-            "temperature scaling, and response validation. Until a commissioning "
-            "procedure supplies and independently verifies these, the application "
-            "stays in simulation mode and the protocol builder below is never opened."
+            "Three Watlow Series 96 controllers, one per zone, answer as Modbus slaves "
+            "1, 2 and 3 at 9600 baud 8N1. Function 0x03 reads holding registers and 0x06 "
+            "writes one register; the CRC is Modbus CRC-16 (poly 0xA001, init 0xFFFF), low "
+            "byte first, exactly as recovered from Calc CRC-sub.vi.\n\n"
+            "Registers used: 0 model (96) · 100 process value · 101 input error · 103 "
+            "output ×10 % · 106 alarm 2 status · 300 set point (Change SP.vi: Reg-H 1, "
+            "Reg-L 44) · 301 auto/manual · 304/305 auto-tune · 500 prop band · 501 "
+            "integral ×100 min/rep · 503 derivative ×100 min · 506 cycle time ×10 s · "
+            "602/603 set point range · 606 decimal · 900 PID units (2 = SI) · 901 °C/°F.\n\n"
+            "Controller configuration read from the oven: °C, whole degrees, type E "
+            "thermocouple, set point range 0–800 °C, internal ramping off."
         )
         evidence.setObjectName("muted")
         evidence.setWordWrap(True)
@@ -512,18 +1000,18 @@ class InstrumentPage(QWidget):
         layout.addWidget(protocol)
 
         frames = Card(
-            "Frame builder (reference only)",
-            "Example frames produced by the recovered builders — nothing here is sent.",
+            "Example frames",
+            "Requests as sent on the bus; the first two were captured on the oven.",
         )
         frame_form = QFormLayout()
         frame_form.setSpacing(10)
         self.frame_labels = []
         for name, frame in (
-            ("Read (addr 1, reg 0x00A8, 2 bytes)", WatlowCommands.read(1, 0x00A8, 2)),
-            ("Write (addr 1, reg 0x00A8, 590)", WatlowCommands.write(1, 0x00A8, 590)),
-            ("Set point (addr 1, reg 0x00A8, 590)", WatlowCommands.setpoint(1, 0x00A8, 590)),
-            ("Ramp rate (addr 1, reg 0x00A9, 20)", WatlowCommands.ramp_rate(1, 0x00A9, 20)),
-            ("Stop (addr 1, reg 0x00AA)", WatlowCommands.stop(1, 0x00AA)),
+            ("Read Zone 1 process value", read_request(1, 100)),
+            ("Read Zone 3 process value", read_request(3, 100)),
+            ("Read Zone 2 PID block (7 registers)", read_request(2, 500, 7)),
+            ("Write Zone 1 set point 590 °C", write_request(1, 300, 590)),
+            ("Write Zone 1 set point 0 °C (heaters off)", write_request(1, 300, 0)),
         ):
             label = QLabel(bytes(frame).hex(" ").upper())
             label.setObjectName("recoveredNote")
@@ -536,7 +1024,7 @@ class InstrumentPage(QWidget):
         self.config_labels: list[tuple[QLabel, QLabel]] = []
         config_form = QFormLayout()
         config_form.setSpacing(10)
-        for label_text in ("Simulation mode", "Poll interval", "Serial port", "Baud rate", "Data dir"):
+        for label_text in ("Simulation mode", "Poll interval", "Serial port", "Baud rate", "Zone addresses", "Data dir"):
             label = QLabel(label_text)
             label.setObjectName("muted")
             value = QLabel("")
@@ -552,10 +1040,11 @@ class InstrumentPage(QWidget):
         config = self.window.config
         serial = config.serial
         values = (
-            "Yes (hardware locked)" if config.simulation_mode else "No",
-            f"{config.poll_seconds:g} s",
-            serial.port or "not configured (locked)",
+            "Yes" if config.simulation_mode else "No (Watlow hardware)",
+            f"{config.poll_seconds:g} s (hardware minimum 2 s)",
+            serial.port or "not configured",
             str(serial.baudrate),
+            ", ".join(str(a) for a in config.zone_addresses),
             config.data_dir or "platform default",
         )
         for (_, value_label), text in zip(self.config_labels, values):

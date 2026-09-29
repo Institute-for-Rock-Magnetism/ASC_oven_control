@@ -48,6 +48,9 @@ class BaseTransport(ABC):
     def read(self, size: int) -> bytes:
         """Read up to ``size`` bytes; returns fewer at EOF/timeout."""
 
+    def reset_input(self) -> None:
+        """Discard unread input bytes (stale or noise) before a request."""
+
 
 class DisconnectedTransport(BaseTransport):
     """Fail-closed transport: every operation raises.
@@ -158,6 +161,10 @@ class PySerialTransport(BaseTransport):
         if not self.is_connected():
             raise CommunicationError("serial transport is disconnected")
         return self._connection.read(size)
+
+    def reset_input(self) -> None:
+        if self.is_connected():
+            self._connection.reset_input_buffer()
 
 
 def create_transport(profile: SerialProfile, *, simulation: bool = True) -> BaseTransport:

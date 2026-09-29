@@ -45,6 +45,10 @@ CREATE TABLE IF NOT EXISTS samples(
 );
 """
 
+# Per-zone controller setpoints and output power, added for PID tuning and
+# gradient analysis. Older databases are migrated in place (nullable).
+DETAIL_COLUMNS = ("zone1_sp_c", "zone2_sp_c", "zone3_sp_c", "zone1_power_pct", "zone2_power_pct", "zone3_power_pct")
+
 
 class RunLogger:
     """Thread-safe SQLite store for runs and per-sample observations."""
@@ -56,6 +60,10 @@ class RunLogger:
         self.conn = sqlite3.connect(str(self.path), check_same_thread=False)
         self.conn.execute("PRAGMA journal_mode=WAL")
         self.conn.executescript(RUNS_SCHEMA + SAMPLES_SCHEMA)
+        existing = {row[1] for row in self.conn.execute("PRAGMA table_info(samples)")}
+        for column in DETAIL_COLUMNS:
+            if column not in existing:
+                self.conn.execute(f"ALTER TABLE samples ADD COLUMN {column} REAL")
         self.conn.commit()
 
     def start_run(self, profile: RunProfile) -> int:
@@ -104,8 +112,10 @@ class RunLogger:
                 INSERT INTO samples (
                     run_id, timestamp, elapsed_sec,
                     zone1_c, zone2_c, zone3_c, current_a,
-                    output_setpoint_c, target_setpoint_c, phase, alarm, connected
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    output_setpoint_c, target_setpoint_c, phase, alarm, connected,
+                    zone1_sp_c, zone2_sp_c, zone3_sp_c,
+                    zone1_power_pct, zone2_power_pct, zone3_power_pct
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     run_id,
@@ -120,6 +130,8 @@ class RunLogger:
                     str(sample.phase),
                     sample.alarm,
                     int(sample.connected),
+                    *sample.zone_setpoints_c,
+                    *sample.zone_power_pct,
                 ),
             )
             self.conn.commit()
@@ -135,6 +147,20 @@ class RunLogger:
                 """
                 SELECT timestamp, elapsed_sec, zone1_c, zone2_c, zone3_c,
                        current_a, output_setpoint_c, target_setpoint_c, phase, alarm, connected
+                FROM samples WHERE run_id = ? ORDER BY id DESC LIMIT ?
+                """,
+                (run_id, limit),
+            ).fetchall()
+        return list(reversed(rows))
+
+    def get_detailed_samples(self, run_id: int, limit: int = 10_000_000) -> list[tuple]:
+        """Samples with the per-zone setpoint/power columns appended."""
+        with self._lock:
+            rows = self.conn.execute(
+                f"""
+                SELECT timestamp, elapsed_sec, zone1_c, zone2_c, zone3_c,
+                       current_a, output_setpoint_c, target_setpoint_c, phase, alarm, connected,
+                       {", ".join(DETAIL_COLUMNS)}
                 FROM samples WHERE run_id = ? ORDER BY id DESC LIMIT ?
                 """,
                 (run_id, limit),
@@ -163,6 +189,7 @@ def export_samples_csv(rows: Iterable[tuple], target: Path | str) -> None:
                 "phase",
                 "alarm",
                 "connected",
+                *DETAIL_COLUMNS,
             ]
         )
         writer.writerows(rows)

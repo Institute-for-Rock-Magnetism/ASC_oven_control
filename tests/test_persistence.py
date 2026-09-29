@@ -34,6 +34,28 @@ class RunLoggerTest(unittest.TestCase):
     def tearDown(self) -> None:
         self.temp_dir.cleanup()
 
+    def test_detail_columns_logged_and_old_database_migrated(self):
+        import sqlite3
+
+        from asc_oven_control.infrastructure.persistence import RUNS_SCHEMA, SAMPLES_SCHEMA
+
+        legacy = sqlite3.connect(str(self.db_path))
+        legacy.executescript(RUNS_SCHEMA + SAMPLES_SCHEMA)  # pre-migration schema
+        legacy.close()
+        logger = RunLogger(self.db_path)
+        try:
+            run_id = logger.start_run(profile())
+            logger.log_sample(
+                run_id,
+                SamplePoint(1.0, 2.0, (100.0, 99.0, 98.0), None, 101.0, 590.0, OvenPhase.RAMPING, "", True,
+                            zone_setpoints_c=(101.0, 103.0, 102.0), zone_power_pct=(40.0, 55.5, 60.0)),
+            )
+            row = logger.get_detailed_samples(run_id)[0]
+            self.assertEqual(row[11:], (101.0, 103.0, 102.0, 40.0, 55.5, 60.0))
+            self.assertEqual(len(logger.get_samples(run_id)[0]), 11)
+        finally:
+            logger.close()
+
     def test_run_lifecycle(self):
         logger = RunLogger(self.db_path)
         try:

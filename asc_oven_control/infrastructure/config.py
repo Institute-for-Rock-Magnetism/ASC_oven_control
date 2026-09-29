@@ -82,15 +82,23 @@ class SerialProfile:
         )
 
 
+DEFAULT_ZONE_ADDRESSES = (1, 2, 3)
+
+
 @dataclass(frozen=True, slots=True)
 class ApplicationConfig:
-    """Top-level configuration; ``simulation_mode`` defaults to True."""
+    """Top-level configuration; ``simulation_mode`` defaults to True.
+
+    ``zone_addresses`` are the Modbus slave addresses of the Zone 1/2/3
+    Watlow Series 96 controllers (verified 1, 2, 3 on 2026-09-29).
+    """
 
     version: int = APPLICATION_CONFIG_VERSION
     simulation_mode: bool = True
     data_dir: str | None = None
     poll_seconds: float = 0.5
     serial: SerialProfile = SerialProfile()
+    zone_addresses: tuple[int, int, int] = DEFAULT_ZONE_ADDRESSES
 
     def __post_init__(self) -> None:
         if self.version != APPLICATION_CONFIG_VERSION:
@@ -103,6 +111,14 @@ class ApplicationConfig:
             raise ConfigValidationError("poll_seconds must be positive")
         if not isinstance(self.serial, SerialProfile):
             raise ConfigValidationError("serial must be a SerialProfile")
+        addresses = self.zone_addresses
+        if (
+            not isinstance(addresses, tuple)
+            or len(addresses) != 3
+            or any(isinstance(a, bool) or not isinstance(a, int) or not 1 <= a <= 247 for a in addresses)
+            or len(set(addresses)) != 3
+        ):
+            raise ConfigValidationError("zone_addresses must be three distinct integers in 1..247")
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -111,19 +127,23 @@ class ApplicationConfig:
             "data_dir": self.data_dir,
             "poll_seconds": self.poll_seconds,
             "serial": self.serial.to_dict(),
+            "zone_addresses": list(self.zone_addresses),
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ApplicationConfig":
-        unknown = set(data) - {"version", "simulation_mode", "data_dir", "poll_seconds", "serial"}
+        known = {"version", "simulation_mode", "data_dir", "poll_seconds", "serial", "zone_addresses"}
+        unknown = set(data) - known
         if unknown:
             raise ConfigValidationError(f"unknown application config fields: {sorted(unknown)}")
         serial_data = data.get("serial")
         serial = SerialProfile.from_dict(serial_data) if isinstance(serial_data, dict) else SerialProfile()
+        addresses = data.get("zone_addresses", DEFAULT_ZONE_ADDRESSES)
         return cls(
             version=data.get("version", APPLICATION_CONFIG_VERSION),
             simulation_mode=bool(data.get("simulation_mode", True)),
             data_dir=data.get("data_dir"),
             poll_seconds=data.get("poll_seconds", 0.5),
             serial=serial,
+            zone_addresses=tuple(addresses) if isinstance(addresses, (list, tuple)) else addresses,
         )

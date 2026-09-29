@@ -44,16 +44,22 @@ class MetricCard(QFrame):
         caption_label.setObjectName("metricCaption")
         self.value_label = QLabel(value)
         self.value_label.setObjectName("metricValue")
+        self.detail_label = QLabel("")
+        self.detail_label.setObjectName("muted")
         bar = QFrame()
         bar.setFixedHeight(4)
         bar.setStyleSheet(f"background: {accent}; border-radius: 2px;")
         layout.addWidget(caption_label)
         layout.addWidget(self.value_label)
+        layout.addWidget(self.detail_label)
         layout.addStretch()
         layout.addWidget(bar)
 
     def set_value(self, value: str) -> None:
         self.value_label.setText(value)
+
+    def set_detail(self, text: str) -> None:
+        self.detail_label.setText(text)
 
 
 def button(text: str, kind: str = "secondary", handler=None) -> QPushButton:

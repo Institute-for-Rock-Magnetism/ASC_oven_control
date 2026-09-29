@@ -1,5 +1,10 @@
 """CRC-framed register protocol recovered from the LabVIEW VIs.
 
+Superseded for live use: hardware verification (2026-09-29) showed the
+frames are standard Modbus RTU with a function code byte, which this
+reconstruction lacks. The application uses ``modbus_rtu.py`` and
+``watlow96.py``; this module is kept for its CRC helper and as evidence.
+
 Evidence chain (see ``LABVIEW_MIGRATION.md`` and ``reconstructions/labview``):
 
 - ``Calc CRC-sub.vi`` exposes the frame parts — Command, Adress, Reg H,

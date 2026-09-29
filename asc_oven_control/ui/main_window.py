@@ -2,10 +2,12 @@
 
 The window owns the run engine and logger; pages read mutable state off the
 window and the engine's Qt signals drive live updates. The sidebar footer
-states the simulation-only execution mode.
+states whether runs drive the simulation or the real Watlow controllers.
 """
 
 from __future__ import annotations
+
+from pathlib import Path
 
 from PySide6.QtWidgets import (
     QFrame,
@@ -19,25 +21,36 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from asc_oven_control.infrastructure.persistence import RunLogger
+from asc_oven_control.infrastructure.persistence import RunLogger, atomic_write_json
+from asc_oven_control.services.oven_backend import create_backend
 from asc_oven_control.services.run_engine import RunEngine, RunEngineError
-from asc_oven_control.ui.pages import DataPage, InstrumentPage, LiveControlPage, SetupPage
+from asc_oven_control.ui.pages import DataPage, InstrumentPage, LiveControlPage, SetupPage, TuningPage
 from asc_oven_control.ui.plot_widget import ZoneTrendChart
 
 NAV_ITEMS = (
     ("01   Setup", "WORKSPACE / SETUP", "Prepare a thermal run"),
     ("02   Live control", "WORKSPACE / LIVE CONTROL", "Monitor and guide the oven"),
     ("03   Run data", "WORKSPACE / RUN DATA", "Review the temperature record"),
-    ("04   Instrument reference", "INSTRUMENT / REFERENCE", "Recovered protocol evidence"),
+    ("04   Controller tuning", "INSTRUMENT / PID TUNING", "Watlow Series 96 PID and auto-tune"),
+    ("05   Instrument reference", "INSTRUMENT / REFERENCE", "Protocol and register map"),
 )
+
+# Simulated runs advance this many times faster than real time.
+SIMULATION_TIME_SCALE = 20.0
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, config, logger: RunLogger) -> None:
+    def __init__(self, config, logger: RunLogger, config_path: Path | None = None) -> None:
         super().__init__()
         self.config = config
+        self.config_path = config_path
         self.logger = logger
-        self.engine = RunEngine(logger, poll_seconds=config.poll_seconds)
+        self.engine = RunEngine(
+            logger,
+            poll_seconds=config.poll_seconds,
+            backend_factory=lambda: create_backend(self.config),
+            simulation_time_scale=SIMULATION_TIME_SCALE,
+        )
         self.setWindowTitle("ASC Oven Control")
         self.resize(1280, 840)
         self.setMinimumSize(1060, 720)
@@ -50,7 +63,9 @@ class MainWindow(QMainWindow):
         self.engine.snapshot_ready.connect(self._on_snapshot)
         self.engine.failed.connect(self._on_engine_failed)
         self.engine.finished.connect(self._on_engine_finished)
+        self.engine.state_changed.connect(self._on_state_changed)
 
+        self._update_mode_labels()
         self.set_page(0)
 
     # ------------------------------------------------------------------ UI
@@ -73,9 +88,10 @@ class MainWindow(QMainWindow):
         self.setup_page = SetupPage(self)
         self.live_page = LiveControlPage(self)
         self.data_page = DataPage(self)
+        self.tuning_page = TuningPage(self)
         self.instrument_page = InstrumentPage(self)
         self.pages = QStackedWidget()
-        for page in (self.setup_page, self.live_page, self.data_page, self.instrument_page):
+        for page in (self.setup_page, self.live_page, self.data_page, self.tuning_page, self.instrument_page):
             self.pages.addWidget(page)
         content_layout.addWidget(self.pages, 1)
         shell.addWidget(content, 1)
@@ -101,10 +117,31 @@ class MainWindow(QMainWindow):
             self.nav_buttons.append(nav_button)
             layout.addWidget(nav_button)
         layout.addStretch()
-        footer = QLabel("SIMULATION SAFE\nNo physical ports opened")
-        footer.setObjectName("simSafeFooter")
-        layout.addWidget(footer)
+        self.mode_footer = QLabel("")
+        self.mode_footer.setObjectName("simSafeFooter")
+        layout.addWidget(self.mode_footer)
         return sidebar
+
+    def mode_text(self) -> str:
+        if self.config.simulation_mode:
+            return "SIMULATION\nNo physical ports opened"
+        return f"HARDWARE · {self.config.serial.port}\nWatlow Series 96 × 3"
+
+    def _update_mode_labels(self) -> None:
+        self.mode_footer.setText(self.mode_text())
+        if not self.engine.active:
+            self.status_text.setText(self.idle_status())
+
+    def idle_status(self) -> str:
+        return "Simulation ready" if self.config.simulation_mode else f"Hardware ready ({self.config.serial.port})"
+
+    def apply_config(self, config) -> None:
+        """Adopt a new configuration and persist it for the next launch."""
+        self.config = config
+        if self.config_path is not None:
+            atomic_write_json(self.config_path, config.to_dict())
+        self._update_mode_labels()
+        self.instrument_page.refresh()
 
     def _build_header(self) -> QHBoxLayout:
         layout = QHBoxLayout()
@@ -119,7 +156,7 @@ class MainWindow(QMainWindow):
         layout.addStretch()
         self.status_dot = QLabel("●")
         self.status_dot.setObjectName("statusDot")
-        self.status_text = QLabel("Simulation ready")
+        self.status_text = QLabel("")
         self.status_text.setObjectName("statusText")
         layout.addWidget(self.status_dot)
         layout.addWidget(self.status_text)
@@ -143,18 +180,35 @@ class MainWindow(QMainWindow):
     def start_run(self) -> None:
         try:
             profile = self.setup_page.collect_profile()
+            settings = self.setup_page.collect_settings()
         except ValueError as exc:
             QMessageBox.warning(self, "Cannot start run", str(exc))
             return
+        if not self.config.simulation_mode:
+            answer = QMessageBox.question(
+                self,
+                "Start hardware run",
+                f"This run will write set points to the three Watlow controllers on "
+                f"{self.config.serial.port} and heat the oven to "
+                f"{profile.target_setpoint_c:.0f} °C at {profile.ramp_rate_c_per_min:g} °C/min.\n\n"
+                "Stop, completion, or a communication failure sets every zone to its "
+                "lowest set point. Continue?",
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+        self.setup_page.save_form_state()
+        self.engine.set_settings(settings)
+        self.chart.clear()
         try:
             self.engine.start(profile)
-        except RunEngineError as exc:
+        except (RunEngineError, OSError, ValueError) as exc:
             QMessageBox.warning(self, "Cannot start run", str(exc))
             return
         self.live_page.manual_target_spin.setValue(profile.target_setpoint_c)
         self.live_page.manual_ramp_spin.setValue(profile.ramp_rate_c_per_min)
         self.live_page.live_field_check.setChecked(profile.field_enabled)
-        self.show_status_text("Run started (simulation)")
+        mode = "simulation" if self.config.simulation_mode else "hardware"
+        self.show_status_text(f"Run started ({mode})")
         self.set_page(1)
 
     def pause_run(self) -> None:
@@ -196,24 +250,55 @@ class MainWindow(QMainWindow):
     def _on_snapshot(self, snapshot: dict) -> None:
         self.live_page._apply_snapshot(snapshot)
         self.chart.append(
-            snapshot["timestamp"], snapshot["zones"], snapshot["output_setpoint_c"], snapshot["current_a"]
+            snapshot["elapsed_sec"], snapshot["zones"], snapshot["output_setpoint_c"], snapshot["current_a"]
         )
         if snapshot["alarm"] and snapshot["alarm"] != self.last_error:
             self.last_error = snapshot["alarm"]
             self.status_text.setText("Alarm active")
         elif not self.engine.active:
-            self.status_text.setText("Simulation ready")
-        else:
-            state = "Paused" if self.engine.state == "Paused" else "Running"
-            self.status_text.setText(state)
+            self.status_text.setText(self.idle_status())
+
+    def _on_state_changed(self, _state: str, message: str) -> None:
+        self.status_text.setText(message)
+        self.live_page.add_event(message)
+        self.live_page.refresh()
 
     def _on_engine_failed(self, message: str) -> None:
         QMessageBox.critical(self, "Run failed", message)
 
+    def runs_dir(self) -> Path | None:
+        if self.config_path is not None:
+            return self.config_path.parent.parent / "runs"
+        return Path(self.config.data_dir) / "runs" if self.config.data_dir else None
+
+    def _auto_export(self) -> str:
+        """Write the finished run's full time/temperature record as CSV."""
+        from datetime import datetime
+
+        from asc_oven_control.infrastructure.persistence import export_samples_csv
+
+        run_id = self.engine.last_run_id
+        directory = self.runs_dir()
+        if run_id is None or directory is None:
+            return ""
+        rows = self.logger.get_detailed_samples(run_id)
+        if not rows:
+            return ""
+        directory.mkdir(parents=True, exist_ok=True)
+        target = directory / f"run-{run_id:04d}-{datetime.now():%Y%m%d-%H%M}.csv"
+        export_samples_csv(rows, target)
+        return str(target)
+
     def _on_engine_finished(self, outcome: str) -> None:
-        self.show_status_text(f"Run {outcome.lower()}")
+        try:
+            exported = self._auto_export()
+        except OSError as exc:
+            exported = ""
+            QMessageBox.warning(self, "Run log", f"Could not write the run CSV: {exc}")
+        self.show_status_text(f"Run {outcome.lower()}" + (f" · log saved to {exported}" if exported else ""))
         self.live_page.refresh()
         self.data_page.refresh()
+        self.tuning_page.refresh()
 
     # ------------------------------------------------------------------ close
 

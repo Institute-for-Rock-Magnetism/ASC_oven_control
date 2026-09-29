@@ -1,13 +1,23 @@
-"""Run engine: a QThread worker running the 3-zone oven simulation.
+"""Run engine: a QThread worker supervising the three oven zones.
 
 The engine communicates with the UI exclusively through Qt signals (no
 shared queues). Pause and abort use ``threading.Event``s so the worker
 stops at safe boundaries. The worker is the only place that touches the
-thermal model; the GUI remains passive.
+oven backend; the GUI remains passive.
 
-In simulation mode the worker drives the deterministic ``ThermalModel``.
-A hardware transport would be swapped in here during commissioning, but the
-GUI never creates one — see ``LABVIEW_MIGRATION.md``.
+Every poll the worker reads all three zones, lets ``ZoneCoordinator``
+choose per-zone setpoints (guaranteed ramp, leader limiting, approach
+deceleration, guaranteed soak — see ``domain/zone_control.py``) and writes
+them to the backend. The Watlow PID loops do the fast control.
+
+Safety behavior:
+
+- Pause holds the setpoints currently in the controllers.
+- Stop, abort and completion drive every zone to its lowest allowed
+  setpoint (heaters off) before the worker exits.
+- A communication failure fails the run after a best-effort safe shutdown.
+  If the bus is gone the controllers keep holding their last setpoint,
+  which is never above the current ramp position.
 """
 
 from __future__ import annotations
@@ -19,9 +29,22 @@ from typing import Optional
 
 from PySide6.QtCore import QObject, QThread, Signal
 
-from asc_oven_control.domain.calculations import ThermalModel, evaluate_alarm, ramp_step
+from asc_oven_control.domain.calculations import evaluate_alarm
 from asc_oven_control.domain.models import OvenPhase, RunProfile, SamplePoint
+from asc_oven_control.domain.zone_control import GradientSettings, ZoneCoordinator, ZonePhase
 from asc_oven_control.infrastructure.persistence import RunLogger
+from asc_oven_control.services.oven_backend import OvenBackend, SimulatedOven
+
+HARDWARE_MIN_POLL_S = 2.0
+
+_PHASES = {
+    ZonePhase.RAMPING: OvenPhase.RAMPING,
+    ZonePhase.HOLDING: OvenPhase.RAMPING,
+    ZonePhase.APPROACH: OvenPhase.RAMPING,
+    ZonePhase.SETTLING: OvenPhase.SOAKING,
+    ZonePhase.SOAKING: OvenPhase.SOAKING,
+    ZonePhase.COMPLETE: OvenPhase.COMPLETE,
+}
 
 
 class RunEngineError(RuntimeError):
@@ -29,140 +52,203 @@ class RunEngineError(RuntimeError):
 
 
 class _RunWorker(QObject):
-    """Owns the thermal model and the run state machine; lives on a QThread."""
+    """Owns the backend session and the run state machine; lives on a QThread."""
 
     snapshot_ready = Signal(object)
     state_changed = Signal(str, str)
     failed = Signal(str)
     finished = Signal(str)
 
-    def __init__(self, profile: RunProfile, run_id: int, logger: RunLogger, poll_seconds: float) -> None:
+    def __init__(
+        self,
+        profile: RunProfile,
+        run_id: int,
+        logger: RunLogger,
+        poll_seconds: float,
+        backend: OvenBackend,
+        settings: GradientSettings,
+        time_scale: float = 1.0,
+    ) -> None:
         super().__init__()
         self.profile = profile
         self.run_id = run_id
         self.logger = logger
         self.poll_seconds = poll_seconds
-        self.model = ThermalModel()
+        self.backend = backend
+        self.time_scale = time_scale
+        self.coordinator = ZoneCoordinator(
+            target_c=profile.target_setpoint_c,
+            ramp_rate_c_per_min=profile.ramp_rate_c_per_min,
+            soak_time_s=profile.soak_time_sec,
+            settings=settings,
+        )
         self.phase = OvenPhase.RAMPING
-        # The commanded setpoint starts at the current chamber temperature
-        # (ambient), matching the original LabVIEW behavior.
-        self.output_setpoint = self.model.zones[0]
+        self.detail_phase = ZonePhase.RAMPING
         self.field_enabled = profile.field_enabled
         self.field_amplitude_uT = profile.field_amplitude_uT
         self.elapsed_sec = 0.0
-        self.started_monotonic = time.monotonic()
+        self.tripped = ""
         self._pause = threading.Event()
         self._pause.set()
         self._abort = threading.Event()
-        self._finished = False
+        self._commands: list = []
+        self._commands_lock = threading.Lock()
 
+    # Commands arrive from the UI thread; they are applied inside the loop.
     def pause(self) -> None:
         self._pause.clear()
-        self.phase = OvenPhase.PAUSED
-        self.state_changed.emit(str(self.phase), "Run paused")
+        self.state_changed.emit(str(OvenPhase.PAUSED), "Run paused — holding current setpoints")
 
     def resume(self) -> None:
         self._pause.set()
-        self.phase = OvenPhase.RAMPING
         self.state_changed.emit(str(self.phase), "Run resumed")
 
     def abort(self) -> None:
         self._abort.set()
         self._pause.set()
 
+    def _queue(self, command) -> None:
+        with self._commands_lock:
+            self._commands.append(command)
+
     def set_manual_target(self, target: float) -> None:
-        self.profile = replace(self.profile, target_setpoint_c=float(target))
+        self._queue(lambda: self._retarget(float(target)))
 
     def set_ramp_rate(self, rate: float) -> None:
-        self.profile = replace(self.profile, ramp_rate_c_per_min=max(0.0, float(rate)))
+        self._queue(lambda: setattr(self.coordinator, "ramp_rate_c_per_min", max(0.0, float(rate))))
+
+    def set_settings(self, settings: GradientSettings) -> None:
+        self._queue(lambda: setattr(self.coordinator, "settings", settings))
 
     def set_field(self, enabled: bool, amplitude_uT: float) -> None:
         self.field_enabled = enabled
         self.field_amplitude_uT = amplitude_uT
 
+    def _retarget(self, target: float) -> None:
+        self.profile = replace(self.profile, target_setpoint_c=target)
+        self.coordinator.retarget(target)
+
     def run(self) -> None:
+        outcome = "Stopped"
         try:
-            self._loop()
+            self.backend.connect()
+            try:
+                outcome = self._loop()
+            finally:
+                self._shutdown_heaters()
+                self.backend.close()
         except Exception as exc:  # noqa: BLE001 - report and finish
             self.failed.emit(str(exc))
             self.finished.emit("Failed")
             return
-        if self._abort.is_set():
-            self.finished.emit("Aborted")
-        elif self.phase == OvenPhase.COMPLETE:
-            self.finished.emit("Complete")
-        else:
-            self.finished.emit("Stopped")
+        self.finished.emit(outcome)
 
-    def _loop(self) -> None:
+    def _shutdown_heaters(self) -> None:
+        try:
+            self.backend.safe_shutdown()
+        except Exception as exc:  # noqa: BLE001 - surface, never mask the run outcome
+            self.state_changed.emit(str(self.phase), f"Safe shutdown failed: {exc}")
+
+    def _loop(self) -> str:
+        last = time.monotonic()
         while not self._abort.is_set():
-            self._pause.wait()
-            if self._abort.is_set():
-                return
+            if not self._pause.is_set():
+                # Paused: keep reading so the display stays live, but do not
+                # move the setpoints.
+                self._tick(last, advance_control=False)
+                last = time.monotonic()
+                self._pause.wait(self.poll_seconds)
+                continue
             started = time.monotonic()
-            now = time.time()
-            self.elapsed_sec = started - self.started_monotonic
-
-            # Advance the ramp/soak state machine and the thermal model.
-            self._advance_run()
-            self.model.update(
-                self.output_setpoint,
-                self.poll_seconds,
-                self.field_enabled,
-                self.field_amplitude_uT,
-            )
-            alarm = evaluate_alarm(
-                self.model.zones, self.profile.alarm_high_c, self.profile.alarm_low_c
-            )
-
-            sample = SamplePoint(
-                timestamp=now,
-                elapsed_sec=self.elapsed_sec,
-                zone_temps_c=self.model.zones,
-                current_a=self.model.current_a,
-                output_setpoint_c=self.output_setpoint,
-                target_setpoint_c=self.profile.target_setpoint_c,
-                phase=self.phase,
-                alarm=alarm,
-                connected=False,
-            )
-            self.logger.log_sample(self.run_id, sample)
-            self.snapshot_ready.emit(
-                {
-                    "timestamp": now,
-                    "elapsed_sec": self.elapsed_sec,
-                    "zones": self.model.zones,
-                    "current_a": self.model.current_a,
-                    "output_setpoint_c": self.output_setpoint,
-                    "target_setpoint_c": self.profile.target_setpoint_c,
-                    "phase": str(self.phase),
-                    "alarm": alarm,
-                    "field_enabled": self.field_enabled,
-                    "field_amplitude_uT": self.field_amplitude_uT,
-                }
-            )
+            self._tick(last, advance_control=True)
+            last = started
             if self.phase == OvenPhase.COMPLETE:
-                return
-            # Keep the loop cadence accurate regardless of work duration.
+                return "Complete"
             elapsed = time.monotonic() - started
-            time.sleep(max(self.poll_seconds - elapsed, 0.0))
+            self._abort.wait(max(self.poll_seconds - elapsed, 0.0))
+        return "Tripped" if self.tripped else "Aborted"
 
-    def _advance_run(self) -> None:
-        """Move the commanded setpoint along the ramp, then the soak."""
-        target = self.profile.target_setpoint_c
-        self.output_setpoint = ramp_step(
-            self.output_setpoint, target, self.profile.ramp_rate_c_per_min, self.poll_seconds
+    def _tick(self, last: float, advance_control: bool) -> None:
+        now_mono = time.monotonic()
+        dt = (now_mono - last) * self.time_scale
+        self.elapsed_sec += dt
+        with self._commands_lock:
+            commands, self._commands = self._commands, []
+        for command in commands:
+            command()
+
+        self.backend.advance(dt)
+        reading = self.backend.read()
+        if advance_control:
+            decision = self.coordinator.step(reading.zones_c, dt)
+            self.backend.write_setpoints(decision.zone_setpoints_c)
+            if decision.phase != self.detail_phase:
+                self.detail_phase = decision.phase
+                self.state_changed.emit(str(_PHASES[decision.phase]), _phase_message(decision))
+            new_phase = _PHASES[decision.phase]
+            if new_phase == OvenPhase.COMPLETE and self.phase != OvenPhase.COMPLETE:
+                self.logger.finish_run(self.run_id, status="complete")
+            self.phase = new_phase
+        master = self.coordinator.master_c if self.coordinator.master_c is not None else reading.zones_c[0]
+        zones = reading.zones_c
+        gradient = max(zones) - min(zones)
+        alarm = evaluate_alarm(zones, self.profile.alarm_high_c, self.profile.alarm_low_c)
+        if not alarm and reading.alarms:
+            alarm = reading.alarms[0]
+        if max(zones) >= self.profile.alarm_high_c and not self._abort.is_set():
+            # Software over-temperature trip: end the run; the worker's exit
+            # path drives every zone to its lowest set point.
+            self.tripped = f"Over-temperature trip: {alarm}"
+            self.state_changed.emit(str(self.phase), self.tripped + " — heaters off")
+            self._abort.set()
+
+        now = time.time()
+        sample = SamplePoint(
+            timestamp=now,
+            elapsed_sec=self.elapsed_sec,
+            zone_temps_c=zones,
+            current_a=None,
+            output_setpoint_c=master,
+            target_setpoint_c=self.profile.target_setpoint_c,
+            phase=self.phase if self._pause.is_set() else OvenPhase.PAUSED,
+            alarm=alarm,
+            connected=reading.connected and self.backend.is_hardware,
+            zone_setpoints_c=reading.setpoints_c,
+            zone_power_pct=reading.power_pct,
         )
-        if abs(target - self.output_setpoint) <= 0.05:
-            if self.phase == OvenPhase.RAMPING:
-                self.phase = OvenPhase.SOAKING
-                self.soak_started = self.elapsed_sec
-                self.state_changed.emit(str(self.phase), "Target reached, soaking")
-            elif self.phase == OvenPhase.SOAKING:
-                if self.elapsed_sec - self.soak_started >= self.profile.soak_time_sec:
-                    self.phase = OvenPhase.COMPLETE
-                    self.logger.finish_run(self.run_id, status="complete")
-                    self.state_changed.emit(str(self.phase), "Run complete")
+        self.logger.log_sample(self.run_id, sample)
+        self.snapshot_ready.emit(
+            {
+                "timestamp": now,
+                "elapsed_sec": self.elapsed_sec,
+                "zones": zones,
+                "zone_setpoints": reading.setpoints_c,
+                "zone_power": reading.power_pct,
+                "gradient_c": gradient,
+                "current_a": None,
+                "output_setpoint_c": master,
+                "target_setpoint_c": self.profile.target_setpoint_c,
+                "phase": str(sample.phase),
+                "control_phase": self.detail_phase,
+                "soak_elapsed_s": self.coordinator.soak_elapsed_s,
+                "alarm": alarm,
+                "field_enabled": self.field_enabled,
+                "field_amplitude_uT": self.field_amplitude_uT,
+                "hardware": self.backend.is_hardware,
+            }
+        )
+
+
+def _phase_message(decision) -> str:
+    if decision.phase == ZonePhase.HOLDING and decision.held_by is not None:
+        return f"Ramp held for Zone {decision.held_by + 1} to catch up"
+    return {
+        ZonePhase.RAMPING: "Ramping",
+        ZonePhase.APPROACH: "Approaching target at reduced rate",
+        ZonePhase.SETTLING: "At target, waiting for all zones to settle",
+        ZonePhase.SOAKING: "All zones in band, soaking",
+        ZonePhase.COMPLETE: "Run complete, heaters off",
+    }.get(decision.phase, decision.phase)
 
 
 class RunEngine(QObject):
@@ -173,13 +259,23 @@ class RunEngine(QObject):
     failed = Signal(str)
     finished = Signal(str)
 
-    def __init__(self, logger: RunLogger, poll_seconds: float = 0.5) -> None:
+    def __init__(
+        self,
+        logger: RunLogger,
+        poll_seconds: float = 0.5,
+        backend_factory=None,
+        simulation_time_scale: float = 1.0,
+    ) -> None:
         super().__init__()
         self.logger = logger
         self.poll_seconds = poll_seconds
+        self.backend_factory = backend_factory or SimulatedOven
+        self.simulation_time_scale = simulation_time_scale
+        self.settings = GradientSettings()
         self.state = "Idle"
         self.profile: Optional[RunProfile] = None
         self.run_id: Optional[int] = None
+        self.last_run_id: Optional[int] = None
         self._thread: Optional[QThread] = None
         self._worker: Optional[_RunWorker] = None
         self._last_snapshot: Optional[dict] = None
@@ -197,24 +293,41 @@ class RunEngine(QObject):
             "timestamp": 0.0,
             "elapsed_sec": 0.0,
             "zones": (25.0, 25.0, 25.0),
-            "current_a": 0.0,
+            "zone_setpoints": (25.0, 25.0, 25.0),
+            "zone_power": (None, None, None),
+            "gradient_c": 0.0,
+            "current_a": None,
             "output_setpoint_c": 25.0,
             "target_setpoint_c": 25.0,
             "phase": "Idle",
+            "control_phase": "",
+            "soak_elapsed_s": 0.0,
             "alarm": "",
             "field_enabled": False,
             "field_amplitude_uT": 0.0,
+            "hardware": False,
         }
 
     def start(self, profile: RunProfile) -> int:
         if self.active:
             raise RunEngineError("a run is already active")
+        backend = self.backend_factory()
         run_id = self.logger.start_run(profile)
         self.profile = profile
         self.run_id = run_id
         self.state = "Running"
         self._thread = QThread(self)
-        self._worker = _RunWorker(profile, run_id, self.logger, self.poll_seconds)
+        # One hardware poll (3 zones x 3 transactions) takes ~0.9 s.
+        poll = max(self.poll_seconds, HARDWARE_MIN_POLL_S) if backend.is_hardware else self.poll_seconds
+        self._worker = _RunWorker(
+            profile,
+            run_id,
+            self.logger,
+            poll,
+            backend,
+            self.settings,
+            time_scale=1.0 if backend.is_hardware else self.simulation_time_scale,
+        )
         self._worker.moveToThread(self._thread)
         self._thread.started.connect(self._worker.run)
         for signal_name in ("snapshot_ready", "state_changed", "failed", "finished"):
@@ -242,7 +355,7 @@ class RunEngine(QObject):
             self._worker.resume()
 
     def stop(self) -> None:
-        """Abort the run at the next safe boundary."""
+        """Abort the run at the next safe boundary (heaters driven off)."""
         if self._worker is not None and self.active:
             self._worker.abort()
 
@@ -258,6 +371,11 @@ class RunEngine(QObject):
         if self._worker is not None:
             self._worker.set_ramp_rate(rate)
 
+    def set_settings(self, settings: GradientSettings) -> None:
+        self.settings = settings
+        if self._worker is not None:
+            self._worker.set_settings(settings)
+
     def set_field(self, enabled: bool, amplitude_uT: float) -> None:
         if self._worker is not None:
             self._worker.set_field(enabled, amplitude_uT)
@@ -268,7 +386,7 @@ class RunEngine(QObject):
             self._worker.abort()
         if self._thread is not None and self._thread.isRunning():
             self._thread.quit()
-            self._thread.wait(3000)
+            self._thread.wait(10000)
 
     # -- internal signal handlers (UI thread) --
 
@@ -278,14 +396,17 @@ class RunEngine(QObject):
     def _state_changed(self, state: str, message: str) -> None:
         # Worker phase strings map onto engine-level states.
         if state in ("Ramping", "Soaking"):
-            self.state = "Running"
+            self.state = "Paused" if self.state == "Paused" else "Running"
         elif state == "Paused":
             self.state = "Paused"
+        elif state == "Complete":
+            pass  # finished() sets the terminal state once heaters are off
         else:
             self.state = state
 
     def _worker_finished(self, outcome: str) -> None:
-        if self.run_id is not None and outcome in ("Stopped", "Aborted", "Failed"):
+        self.last_run_id = self.run_id
+        if self.run_id is not None and outcome in ("Stopped", "Aborted", "Failed", "Tripped"):
             self.logger.finish_run(self.run_id, status=outcome.lower())
         self.state = "Completed" if outcome == "Complete" else outcome
         self.run_id = None

@@ -275,3 +275,5 @@ class SamplePoint:
     phase: OvenPhase
     alarm: str
     connected: bool
+    zone_setpoints_c: tuple[float | None, float | None, float | None] = (None, None, None)
+    zone_power_pct: tuple[float | None, float | None, float | None] = (None, None, None)

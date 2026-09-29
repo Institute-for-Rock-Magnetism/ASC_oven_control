@@ -46,6 +46,21 @@ class ApplicationConfigTest(unittest.TestCase):
         with self.assertRaises(ConfigValidationError):
             ApplicationConfig.from_dict({"simulation_mode": True, "extra": 1})
 
+    def test_zone_addresses_default_and_round_trip(self):
+        self.assertEqual(ApplicationConfig().zone_addresses, (1, 2, 3))
+        config = ApplicationConfig(simulation_mode=False, serial=SerialProfile(port="COM4"), zone_addresses=(4, 5, 6))
+        self.assertEqual(ApplicationConfig.from_dict(config.to_dict()), config)
+
+    def test_bad_zone_addresses_rejected(self):
+        for bad in ((1, 1, 2), (0, 1, 2), (1, 2)):
+            with self.assertRaises(ConfigValidationError):
+                ApplicationConfig(zone_addresses=bad)
+
+    def test_config_without_zone_addresses_still_loads(self):
+        data = ApplicationConfig().to_dict()
+        del data["zone_addresses"]
+        self.assertEqual(ApplicationConfig.from_dict(data).zone_addresses, (1, 2, 3))
+
     def test_non_bool_simulation_rejected(self):
         with self.assertRaises(ConfigValidationError):
             ApplicationConfig(simulation_mode="yes")
