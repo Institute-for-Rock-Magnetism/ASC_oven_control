@@ -118,6 +118,17 @@ PNG master for Qt window metadata.
 - `Labview/` — the original LabVIEW project, untouched.
 - `legacy/` — the earlier single-file prototype, kept for reference.
 
+## Run process and crash safety
+
+Each run's control loop runs in its own process
+(`asc_oven_control/services/run_controller.py`), not in the window. If the
+window freezes, crashes or is closed, the run keeps logging (database and
+live CSV), finishes its soak and turns the heaters off. Reopening the app
+reattaches to a run that is still going and Stop works as usual. Closing
+the window during a run offers "Keep running in background" or "Stop run
+and close". UI hangs longer than 4 s are recorded with all thread stacks in
+`<app data>/logs/hang-*.txt`; errors go to `<app data>/logs/app.log`.
+
 ## Safety status
 
 Communication (reads and set point writes) is verified on the real

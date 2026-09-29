@@ -80,8 +80,55 @@ def create_application(argv: list[str] | None = None) -> tuple[QApplication, Mai
     return app, window
 
 
+def install_diagnostics(app: QApplication, log_dir: Path):
+    """Crash log plus a hang recorder for the UI thread.
+
+    The first heated run was lost to a UI hang that Windows closed without
+    any trace. Now: stderr (absent under pythonw) and fatal errors go to
+    ``logs/app.log``, and if the UI thread stops processing events for more
+    than 4 s, every thread's stack is written to ``logs/hang-*.txt``.
+    """
+    import faulthandler
+    import threading
+    import time
+    from datetime import datetime
+
+    from PySide6.QtCore import QTimer
+
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log = open(log_dir / "app.log", "a", encoding="utf-8", buffering=1)
+    log.write(f"\n--- started {datetime.now():%Y-%m-%d %H:%M:%S} pid {os.getpid()}\n")
+    if sys.stderr is None or not sys.stderr.isatty():
+        sys.stderr = log
+    faulthandler.enable(log, all_threads=True)
+
+    beat = [time.monotonic()]
+    timer = QTimer(app)
+    timer.timeout.connect(lambda: beat.__setitem__(0, time.monotonic()))
+    timer.start(500)
+
+    def watch() -> None:
+        dumped = False
+        while True:
+            time.sleep(1.0)
+            stalled = time.monotonic() - beat[0]
+            if stalled > 4.0 and not dumped:
+                path = log_dir / f"hang-{datetime.now():%Y%m%d-%H%M%S}.txt"
+                with open(path, "w", encoding="utf-8") as handle:
+                    handle.write(f"UI thread has not processed events for {stalled:.1f} s\n\n")
+                    faulthandler.dump_traceback(handle, all_threads=True)
+                log.write(f"UI hang recorded in {path}\n")
+                dumped = True
+            elif stalled < 2.0:
+                dumped = False
+
+    threading.Thread(target=watch, name="hang-recorder", daemon=True).start()
+    return timer
+
+
 def main() -> int:
     app, window = create_application()
+    app._diagnostics = install_diagnostics(app, app_home() / "logs")  # keep the timer alive
 
     def handle_exception(exc_type, exc_value, exc_traceback) -> None:  # noqa: ANN001
         import traceback

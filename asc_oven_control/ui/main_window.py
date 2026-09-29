@@ -21,9 +21,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from asc_oven_control.infrastructure.persistence import IdleCsvLog, LiveCsvLog, RunLogger, atomic_write_json
+from asc_oven_control.infrastructure.persistence import IdleCsvLog, RunLogger, atomic_write_json
 from asc_oven_control.services.monitor import HardwareMonitor
-from asc_oven_control.services.oven_backend import WatlowOven, create_backend
+from asc_oven_control.services.oven_backend import WatlowOven
 from asc_oven_control.services.run_engine import HARDWARE_MIN_POLL_S, RunEngine, RunEngineError
 from asc_oven_control.ui.live_plot import create_trend_chart
 from asc_oven_control.ui.pages import DataPage, InstrumentPage, LiveControlPage, SetupPage, TuningPage
@@ -46,12 +46,15 @@ class MainWindow(QMainWindow):
         self.config = config
         self.config_path = config_path
         self.logger = logger
+        home = config_path.parent.parent if config_path is not None else Path(logger.path).parent
         self.engine = RunEngine(
             logger,
             poll_seconds=config.poll_seconds,
-            backend_factory=lambda: create_backend(self.config),
+            config_provider=lambda: self.config,
             simulation_time_scale=SIMULATION_TIME_SCALE,
+            control_dir=home / "control",
         )
+        self.current_csv: str = ""
         self.setWindowTitle("ASC Oven Control")
         self.resize(1400, 900)
         self.setMinimumSize(960, 640)
@@ -59,7 +62,6 @@ class MainWindow(QMainWindow):
         self.chart = create_trend_chart()
         self.chart_mode = "idle"  # "idle": plotting monitor readings; "run": a run's trace
         self.monitor_started = 0.0
-        self.live_log: LiveCsvLog | None = None
         self.idle_log: IdleCsvLog | None = None
         self.nav_buttons: list[QPushButton] = []
         self.last_error = ""
@@ -74,8 +76,19 @@ class MainWindow(QMainWindow):
         self.monitor.error.connect(self._on_monitor_error)
 
         self._update_mode_labels()
-        self._resume_monitor()
-        self.set_page(1 if not config.simulation_mode else 0)
+        info = self.engine.attach()
+        if info is not None:
+            # A run outlived the previous UI session: follow it instead of
+            # starting the idle monitor (the run process owns the port).
+            self.chart_mode = "run"
+            self.current_csv = info.get("csv_path", "")
+            self.live_page.add_event(
+                f"Reattached to run {info['run_id']} still running in the background (target "
+                f"{info.get('target_c', 0):.0f} °C); Stop works as usual"
+            )
+        else:
+            self._resume_monitor()
+        self.set_page(1 if not config.simulation_mode or info is not None else 0)
 
     # --------------------------------------------------------------- monitor
 
@@ -280,13 +293,16 @@ class MainWindow(QMainWindow):
             return
         self.chart.clear()
         self.chart_mode = "run"
+        csv_path, header = self._live_log_plan(profile, settings)
         try:
-            run_id = self.engine.start(profile)
+            self.engine.start(profile, csv_path=csv_path, csv_header=header)
         except (RunEngineError, OSError, ValueError) as exc:
             QMessageBox.warning(self, "Cannot start run", str(exc))
             self._resume_monitor()
             return
-        self._open_live_log(run_id, profile, settings)
+        self.current_csv = csv_path or ""
+        if csv_path:
+            self.live_page.add_event(f"Logging to {csv_path}")
         self.live_page.manual_target_spin.setValue(profile.target_setpoint_c)
         self.live_page.manual_ramp_spin.setValue(profile.ramp_rate_c_per_min)
         for spin, value in zip(self.live_page.manual_offset_spins, settings.zone_offsets_c):
@@ -344,12 +360,6 @@ class MainWindow(QMainWindow):
     def _on_snapshot(self, snapshot: dict) -> None:
         self.live_page._apply_snapshot(snapshot)
         self.chart.add_snapshot(snapshot)
-        if self.live_log is not None:
-            try:
-                self.live_log.write_snapshot(snapshot)
-            except OSError as exc:
-                self.live_page.add_event(f"CSV log write failed: {exc}")
-                self._close_live_log()
         if snapshot["alarm"] and snapshot["alarm"] != self.last_error:
             self.last_error = snapshot["alarm"]
             self.status_text.setText("Alarm active")
@@ -369,13 +379,14 @@ class MainWindow(QMainWindow):
             return self.config_path.parent.parent / "runs"
         return Path(self.config.data_dir) / "runs" if self.config.data_dir else None
 
-    def _open_live_log(self, run_id: int, profile, settings) -> None:
-        """Start the per-poll CSV record of this run in the runs folder."""
+    def _live_log_plan(self, profile, settings) -> tuple[str | None, tuple[str, ...]]:
+        """Path and header of the run's live CSV (written by the run process)."""
         from datetime import datetime
 
         directory = self.runs_dir()
         if directory is None:
-            return
+            return None, ()
+        run_id = (self.logger.latest_run_id() or 0) + 1
         mode = "simulation" if self.config.simulation_mode else f"Watlow hardware on {self.config.serial.port}"
         header = (
             f"ASC oven run {run_id} started {datetime.now():%Y-%m-%d %H:%M:%S} ({mode})",
@@ -386,27 +397,15 @@ class MainWindow(QMainWindow):
             f"hold_band={settings.hold_band_c:g}C max_gradient={settings.max_gradient_c:g}C "
             f"approach_band={settings.approach_band_c:g}C approach_rate={settings.approach_rate_fraction:g} "
             f"soak_band={settings.soak_band_c:g}C strict_soak={settings.strict_soak} "
-            f"trims={settings.zone_offsets_c}",
+            f"trims={settings.zone_offsets_c} cap_depth={settings.max_cap_depth_c:g}C "
+            f"center_comp={settings.center_comp_rate_per_min:g}",
         )
+        directory.mkdir(parents=True, exist_ok=True)
         path = directory / f"run-{run_id:04d}-{datetime.now():%Y%m%d-%H%M}.csv"
-        try:
-            self.live_log = LiveCsvLog(path, header)
-        except OSError as exc:
-            self.live_log = None
-            QMessageBox.warning(self, "Run log", f"Could not create {path}: {exc}\nSamples still go to the database.")
-            return
-        self.live_page.add_event(f"Logging to {path}")
-
-    def _close_live_log(self) -> str:
-        if self.live_log is None:
-            return ""
-        path = str(self.live_log.path)
-        self.live_log.close()
-        self.live_log = None
-        return path
+        return str(path), header
 
     def _on_engine_finished(self, outcome: str) -> None:
-        saved = self._close_live_log()
+        saved, self.current_csv = self.current_csv, ""
         self.show_status_text(f"Run {outcome.lower()}" + (f" · log saved to {saved}" if saved else ""))
         if saved:
             self.live_page.add_event(f"Run {outcome.lower()} · log saved to {saved}")
@@ -419,17 +418,25 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:  # noqa: N802 (Qt override)
         if self.engine.active:
-            answer = QMessageBox.question(
-                self,
-                "Run in progress",
-                "A run is active. Closing stops it and sets every zone to its lowest set point. Close anyway?",
+            box = QMessageBox(self)
+            box.setWindowTitle("Run in progress")
+            box.setText(
+                "A run is active. It runs in its own process, so it can keep going in the "
+                "background (logging, finishing the soak and turning the heaters off); reopen "
+                "the app to follow or stop it."
             )
-            if answer != QMessageBox.StandardButton.Yes:
+            keep = box.addButton("Keep running in background", QMessageBox.ButtonRole.AcceptRole)
+            stop = box.addButton("Stop run and close", QMessageBox.ButtonRole.DestructiveRole)
+            box.addButton(QMessageBox.StandardButton.Cancel)
+            box.exec()
+            if box.clickedButton() is keep:
+                self.engine.detach()
+            elif box.clickedButton() is stop:
+                self.engine.shutdown()
+            else:
                 event.ignore()
                 return
-        self.engine.shutdown()
         self.monitor.shutdown()
-        self._close_live_log()
         if self.idle_log is not None:
             self.idle_log.close()
         self.logger.close()
