@@ -38,7 +38,7 @@ class LiveTrendPlot(QWidget):
 
         pg.setConfigOptions(antialias=True, background=BACKGROUND, foreground="#B9CAD0")
         self._pg = pg
-        self.setMinimumHeight(360)
+        self.setMinimumHeight(240)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self.view = pg.GraphicsLayoutWidget()

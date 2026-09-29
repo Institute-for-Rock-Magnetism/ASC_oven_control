@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QFileDialog,
     QFormLayout,
+    QFrame,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -190,9 +191,10 @@ class SetupPage(QWidget):
         ):
             gradient_form.addRow(label, widget)
         gradient_form.addRow("Zone 1/2/3 trim", offsets_row)
-        self.strict_soak_check = QCheckBox("Pause the soak clock whenever a zone leaves the band")
+        self.strict_soak_check = QCheckBox("Pause when out of band")
         self.strict_soak_check.setChecked(defaults.strict_soak)
         self.strict_soak_check.setToolTip(
+            "Checked: the soak clock pauses whenever a zone leaves the band.\n"
             "Unchecked: the soak starts once every zone is in band, then runs for the full "
             "soak time; time spent out of band is logged and shown."
         )
@@ -344,6 +346,9 @@ class SetupPage(QWidget):
             return
         from asc_oven_control.services.oven_backend import probe_hardware
 
+        if not self.window.acquire_port():
+            self.connection_result.setText("The serial port is busy; try again in a moment.")
+            return
         self.connection_result.setText(f"Testing {config.serial.port}…")
         self.connection_result.repaint()
         try:
@@ -351,6 +356,8 @@ class SetupPage(QWidget):
         except Exception as exc:  # noqa: BLE001 - show any failure to the operator
             self.connection_result.setText(f"Connection failed on {config.serial.port}: {exc}")
             return
+        finally:
+            self.window.release_port()
         self.connection_result.setText("\n".join(lines))
 
     def _save_connection(self) -> None:
@@ -405,12 +412,15 @@ class LiveControlPage(QWidget):
     def __init__(self, window) -> None:
         super().__init__()
         self.window = window
+        from PySide6.QtWidgets import QSplitter
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(18)
+        layout.setSpacing(10)
+        self._live_reading = None
 
         metrics = QGridLayout()
-        metrics.setSpacing(14)
+        metrics.setSpacing(12)
         self.zone_metrics = [
             MetricCard("Zone 1", "-- °C", "#56D6C9"),
             MetricCard("Zone 2", "-- °C", "#F4A261"),
@@ -418,24 +428,29 @@ class LiveControlPage(QWidget):
             MetricCard("Zone gradient", "-- °C", "#8CA4AD"),
         ]
         for column, metric in enumerate(self.zone_metrics):
+            metric.setMaximumHeight(120)
             metrics.addWidget(metric, 0, column)
         layout.addLayout(metrics)
 
         status_row = QHBoxLayout()
+        status_row.setSpacing(8)
         self.phase_pill = pill("Idle", "phaseChip")
         self.field_pill = pill("Field OFF", "fieldBadgeOff")
         self.elapsed_label = QLabel("Elapsed 00:00:00")
         self.elapsed_label.setObjectName("muted")
-        self.setpoint_label = QLabel("Setpoint -- °C")
+        self.setpoint_label = QLabel("")
         self.setpoint_label.setObjectName("muted")
-        status_row.addWidget(self.phase_pill)
-        status_row.addWidget(self.field_pill)
-        status_row.addWidget(self.elapsed_label)
-        status_row.addWidget(self.setpoint_label)
-        status_row.addStretch()
         self.alarm_label = QLabel("No active alarm")
         self.alarm_label.setObjectName("alarmClear")
-        status_row.addWidget(self.alarm_label)
+        self.start_button = button("Start run", "primary", window.start_run)
+        self.pause_button = button("Pause", "secondary", window.pause_run)
+        self.resume_button = button("Resume", "secondary", window.resume_run)
+        self.stop_button = button("Stop", "danger", window.stop_run)
+        for widget in (self.phase_pill, self.field_pill, self.alarm_label, self.elapsed_label, self.setpoint_label):
+            status_row.addWidget(widget)
+        status_row.addStretch()
+        for widget in (self.start_button, self.pause_button, self.resume_button, self.stop_button):
+            status_row.addWidget(widget)
         layout.addLayout(status_row)
         self.events: list[str] = []
         self.event_label = QLabel("")
@@ -443,25 +458,29 @@ class LiveControlPage(QWidget):
         self.event_label.setWordWrap(True)
         layout.addWidget(self.event_label)
 
-        chart_card = Card("Temperature trend", "Three zones and the master ramp setpoint")
+        chart_card = Card()
+        chart_header = QHBoxLayout()
+        chart_title = QLabel("Temperature trend")
+        chart_title.setObjectName("cardTitle")
+        chart_hint = QLabel("Scroll to zoom · drag to pan · A = auto-follow · drag the bar below to resize")
+        chart_hint.setObjectName("muted")
+        chart_header.addWidget(chart_title)
+        chart_header.addSpacing(12)
+        chart_header.addWidget(chart_hint)
+        chart_header.addStretch()
+        chart_header.addWidget(button("Clear chart", "quiet", window.clear_chart))
+        chart_card.body.addLayout(chart_header)
+        chart_frame = QFrame()
+        chart_frame.setObjectName("chartFrame")
+        frame_layout = QVBoxLayout(chart_frame)
+        frame_layout.setContentsMargins(10, 10, 10, 10)
         self.chart = window.chart
-        chart_card.body.addWidget(self.chart, 1)
-        layout.addWidget(chart_card, 1)
-
-        command_row = QHBoxLayout()
-        self.start_button = button("Start run", "primary", window.start_run)
-        self.pause_button = button("Pause", "secondary", window.pause_run)
-        self.resume_button = button("Resume", "secondary", window.resume_run)
-        self.stop_button = button("Stop", "danger", window.stop_run)
-        for widget in (self.start_button, self.pause_button, self.resume_button, self.stop_button):
-            command_row.addWidget(widget)
-        command_row.addStretch()
-        layout.addLayout(command_row)
+        frame_layout.addWidget(self.chart)
+        chart_card.body.addWidget(chart_frame, 1)
 
         manual = Card(
             "Manual adjustment",
-            "Apply a new target or ramp rate to the active profile; the field can be "
-            "toggled live with the amplitude shown on the badge.",
+            "Change the target or ramp rate of the active run; the field can be toggled live.",
         )
         manual_row = QHBoxLayout()
         self.manual_target_spin = self._temperature_spin(590.0, 0.0, 1400.0, " °C")
@@ -479,7 +498,33 @@ class LiveControlPage(QWidget):
         manual_row.addWidget(button("Apply field", "secondary", window.apply_manual_field))
         manual_row.addStretch()
         manual.body.addLayout(manual_row)
-        layout.addWidget(manual)
+
+        self.splitter = QSplitter(Qt.Orientation.Vertical)
+        self.splitter.setChildrenCollapsible(True)
+        self.splitter.setHandleWidth(12)
+        self.splitter.addWidget(chart_card)
+        self.splitter.addWidget(manual)
+        self.splitter.setStretchFactor(0, 1)
+        self.splitter.setStretchFactor(1, 0)
+        self.splitter.setCollapsible(0, False)
+        self.splitter.setSizes([10_000, 150])
+        layout.addWidget(self.splitter, 1)
+
+    def apply_reading(self, reading) -> None:
+        """Live controller readings while no run is active."""
+        self._live_reading = reading
+        for metric, value, setpoint, power in zip(
+            self.zone_metrics[:3], reading.zones_c, reading.setpoints_c, reading.power_pct
+        ):
+            metric.set_value(f"{value:.0f} °C")
+            metric.set_detail(f"live · SP {setpoint:.0f} °C")
+        zones = reading.zones_c
+        self.zone_metrics[3].set_value(f"{max(zones) - min(zones):.0f} °C")
+        self.zone_metrics[3].set_detail("hottest − coldest zone")
+        self.phase_pill.setText("Idle · live readings")
+        self.setpoint_label.setText(time.strftime("updated %H:%M:%S"))
+        alarm = reading.alarms[0] if reading.alarms else ""
+        self._set_alarm(alarm)
 
     @staticmethod
     def _temperature_spin(value: float, minimum: float, maximum: float, suffix: str) -> QDoubleSpinBox:
@@ -504,7 +549,10 @@ class LiveControlPage(QWidget):
         self.pause_button.setEnabled(running and self.window.engine.state == "Running")
         self.resume_button.setEnabled(running and self.window.engine.state == "Paused")
         self.stop_button.setEnabled(running)
-        self._apply_snapshot(snapshot)
+        if not running and self._live_reading is not None and not self.window.config.simulation_mode:
+            self.apply_reading(self._live_reading)
+        elif running or self.window.engine._last_snapshot is not None:
+            self._apply_snapshot(snapshot)
 
     def _apply_snapshot(self, snapshot: dict) -> None:
         zones = snapshot["zones"]
@@ -540,7 +588,9 @@ class LiveControlPage(QWidget):
         self.field_pill.style().unpolish(self.field_pill)
         self.field_pill.style().polish(self.field_pill)
         self.live_field_check.setChecked(field)
-        alarm = snapshot.get("alarm", "")
+        self._set_alarm(snapshot.get("alarm", ""))
+
+    def _set_alarm(self, alarm: str) -> None:
         self.alarm_label.setText(alarm or "No active alarm")
         self.alarm_label.setObjectName("alarmActive" if alarm else "alarmClear")
         self.alarm_label.style().unpolish(self.alarm_label)
@@ -831,13 +881,21 @@ class TuningPage(QWidget):
         if self.window.engine.active:
             self.status_label.setText("A run is active; tuning is available when the oven is idle.")
             return None
+        if not self.window.acquire_port():
+            self.status_label.setText("The serial port is busy; try again in a moment.")
+            return None
         backend = WatlowOven(config)
         try:
             backend.connect()
         except Exception as exc:  # noqa: BLE001
+            self.window.release_port()
             self.status_label.setText(f"Cannot open {config.serial.port}: {exc}")
             return None
         return backend
+
+    def _end(self, backend) -> None:
+        backend.close()
+        self.window.release_port()
 
     def _read_pids(self) -> None:
         backend = self._session()
@@ -861,7 +919,7 @@ class TuningPage(QWidget):
         except Exception as exc:  # noqa: BLE001
             self.status_label.setText(f"Read failed: {exc}")
         finally:
-            backend.close()
+            self._end(backend)
 
     def _write_pid(self, index: int) -> None:
         from asc_oven_control.infrastructure.watlow96 import PidSettings
@@ -891,7 +949,7 @@ class TuningPage(QWidget):
         except Exception as exc:  # noqa: BLE001
             self.status_label.setText(f"Write failed: {exc}")
         finally:
-            backend.close()
+            self._end(backend)
 
     def _start_autotune(self) -> None:
         temperature = round(self.tune_temp_spin.value())
@@ -917,7 +975,7 @@ class TuningPage(QWidget):
         except Exception as exc:  # noqa: BLE001
             self.status_label.setText(f"Auto-tune start failed: {exc}")
         finally:
-            backend.close()
+            self._end(backend)
 
     def _poll_autotune(self) -> None:
         backend = self._session()
@@ -940,7 +998,7 @@ class TuningPage(QWidget):
             self.status_label.setText(f"Auto-tune poll failed: {exc}")
             active = [True]
         finally:
-            backend.close()
+            self._end(backend)
         if not any(active):
             self.tune_timer.stop()
             self._read_pids()
@@ -958,7 +1016,7 @@ class TuningPage(QWidget):
         except Exception as exc:  # noqa: BLE001
             self.status_label.setText(f"Cancel failed: {exc}")
         finally:
-            backend.close()
+            self._end(backend)
 
     def _heaters_off(self) -> None:
         self.tune_timer.stop()
@@ -974,7 +1032,7 @@ class TuningPage(QWidget):
         except Exception as exc:  # noqa: BLE001
             self.status_label.setText(f"Heaters-off failed: {exc}")
         finally:
-            backend.close()
+            self._end(backend)
 
 
 class InstrumentPage(QWidget):

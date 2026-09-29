@@ -9,12 +9,15 @@ a = Analysis(
     [str(project_root / "asc_oven_control" / "__main__.py")],
     pathex=[str(project_root)],
     binaries=[],
-    datas=[(str(project_root / "assets" / "asc_oven_icon.png"), "assets")],
-    hiddenimports=["serial.tools.list_ports"],
+    datas=[
+        (str(project_root / "assets" / "asc_oven_icon.png"), "assets"),
+        (str(project_root / "assets" / "ui"), "assets/ui"),
+    ],
+    hiddenimports=["serial.tools.list_ports", "pyqtgraph"],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=["tkinter", "matplotlib", "numpy"],
+    excludes=["tkinter", "matplotlib"],
     noarchive=False,
     optimize=1,
 )

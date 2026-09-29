@@ -18,7 +18,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 from asc_oven_control.infrastructure.config import ApplicationConfig, ConfigValidationError
 from asc_oven_control.infrastructure.persistence import RunLogger
 from asc_oven_control.ui.main_window import MainWindow
-from asc_oven_control.ui.theme import APP_STYLE
+from asc_oven_control.ui.theme import build_style
 
 APP_NAME = "ASC Oven Control"
 APP_VERSION = "0.1.0"
@@ -70,7 +70,7 @@ def create_application(argv: list[str] | None = None) -> tuple[QApplication, Mai
     app.setOrganizationName("ASC Laboratory")
     app.setWindowIcon(QIcon(str(resource_path("assets/asc_oven_icon.png"))))
     app.setStyle("Fusion")
-    app.setStyleSheet(APP_STYLE)
+    app.setStyleSheet(build_style(resource_path("assets/ui")))
 
     home = app_home()
     home.mkdir(parents=True, exist_ok=True)
@@ -90,7 +90,7 @@ def main() -> int:
         QMessageBox.critical(window, "Unexpected error", f"{exc_type.__name__}: {exc_value}")
 
     sys.excepthook = handle_exception
-    window.show()
+    window.showMaximized()
     return app.exec()
 
 

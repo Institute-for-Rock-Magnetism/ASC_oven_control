@@ -22,8 +22,9 @@ from PySide6.QtWidgets import (
 )
 
 from asc_oven_control.infrastructure.persistence import LiveCsvLog, RunLogger, atomic_write_json
-from asc_oven_control.services.oven_backend import create_backend
-from asc_oven_control.services.run_engine import RunEngine, RunEngineError
+from asc_oven_control.services.monitor import HardwareMonitor
+from asc_oven_control.services.oven_backend import WatlowOven, create_backend
+from asc_oven_control.services.run_engine import HARDWARE_MIN_POLL_S, RunEngine, RunEngineError
 from asc_oven_control.ui.live_plot import create_trend_chart
 from asc_oven_control.ui.pages import DataPage, InstrumentPage, LiveControlPage, SetupPage, TuningPage
 
@@ -52,22 +53,80 @@ class MainWindow(QMainWindow):
             simulation_time_scale=SIMULATION_TIME_SCALE,
         )
         self.setWindowTitle("ASC Oven Control")
-        self.resize(1280, 840)
-        self.setMinimumSize(1060, 720)
+        self.resize(1400, 900)
+        self.setMinimumSize(960, 640)
 
         self.chart = create_trend_chart()
+        self.chart_mode = "idle"  # "idle": plotting monitor readings; "run": a run's trace
+        self.monitor_started = 0.0
         self.live_log: LiveCsvLog | None = None
         self.nav_buttons: list[QPushButton] = []
         self.last_error = ""
+        self.monitor = HardwareMonitor(lambda: WatlowOven(self.config), poll_seconds=HARDWARE_MIN_POLL_S)
         self._build_ui()
 
         self.engine.snapshot_ready.connect(self._on_snapshot)
         self.engine.failed.connect(self._on_engine_failed)
         self.engine.finished.connect(self._on_engine_finished)
         self.engine.state_changed.connect(self._on_state_changed)
+        self.monitor.reading_ready.connect(self._on_monitor_reading)
+        self.monitor.error.connect(self._on_monitor_error)
 
         self._update_mode_labels()
-        self.set_page(0)
+        self._resume_monitor()
+        self.set_page(1 if not config.simulation_mode else 0)
+
+    # --------------------------------------------------------------- monitor
+
+    def _resume_monitor(self) -> None:
+        if not self.config.simulation_mode and self.config.serial.port and not self.engine.active:
+            import time
+
+            self.monitor_started = time.monotonic()
+            self.monitor.resume()
+
+    def acquire_port(self) -> bool:
+        """Take the serial port from the idle monitor (for tests/tuning)."""
+        if self.engine.active:
+            return False
+        return self.monitor.suspend()
+
+    def release_port(self) -> None:
+        self._resume_monitor()
+
+    def _on_monitor_reading(self, reading) -> None:
+        import time
+
+        if self.engine.active:
+            return
+        self.live_page.apply_reading(reading)
+        if self.chart_mode == "idle":
+            self.chart.add_snapshot(
+                {
+                    "elapsed_sec": time.monotonic() - self.monitor_started,
+                    "zones": reading.zones_c,
+                    "output_setpoint_c": max(reading.setpoints_c),
+                    "target_setpoint_c": None,
+                }
+            )
+        alarm = reading.alarms[0] if reading.alarms else ""
+        self.status_text.setText(alarm or f"Live: {self.config.serial.port} · no run active")
+
+    def _on_monitor_error(self, message: str) -> None:
+        if not self.engine.active:
+            self.status_text.setText(f"Controller read failed: {message} (retrying)")
+
+    def clear_chart(self) -> None:
+        import time
+
+        if self.engine.active:
+            return  # a run's trace is the record on screen; keep it
+        self.chart.clear()
+        self.chart_mode = "idle"
+        self.monitor_started = time.monotonic()
+
+    def toggle_sidebar(self) -> None:
+        self.sidebar.setVisible(not self.sidebar.isVisible())
 
     # ------------------------------------------------------------------ UI
 
@@ -77,13 +136,14 @@ class MainWindow(QMainWindow):
         shell = QHBoxLayout(root)
         shell.setContentsMargins(0, 0, 0, 0)
         shell.setSpacing(0)
-        shell.addWidget(self._build_sidebar())
+        self.sidebar = self._build_sidebar()
+        shell.addWidget(self.sidebar)
 
         content = QWidget()
         content.setObjectName("content")
         content_layout = QVBoxLayout(content)
-        content_layout.setContentsMargins(30, 24, 30, 24)
-        content_layout.setSpacing(18)
+        content_layout.setContentsMargins(24, 16, 24, 16)
+        content_layout.setSpacing(12)
         content_layout.addLayout(self._build_header())
 
         self.setup_page = SetupPage(self)
@@ -138,14 +198,22 @@ class MainWindow(QMainWindow):
 
     def apply_config(self, config) -> None:
         """Adopt a new configuration and persist it for the next launch."""
+        self.monitor.suspend()
         self.config = config
         if self.config_path is not None:
             atomic_write_json(self.config_path, config.to_dict())
         self._update_mode_labels()
         self.instrument_page.refresh()
+        self._resume_monitor()
 
     def _build_header(self) -> QHBoxLayout:
         layout = QHBoxLayout()
+        sidebar_toggle = QPushButton("☰")
+        sidebar_toggle.setObjectName("iconButton")
+        sidebar_toggle.setToolTip("Show or hide the sidebar")
+        sidebar_toggle.clicked.connect(self.toggle_sidebar)
+        layout.addWidget(sidebar_toggle)
+        layout.addSpacing(8)
         title_box = QVBoxLayout()
         self.page_eyebrow = QLabel(NAV_ITEMS[0][1])
         self.page_eyebrow.setObjectName("eyebrow")
@@ -199,11 +267,16 @@ class MainWindow(QMainWindow):
                 return
         self.setup_page.save_form_state()
         self.engine.set_settings(settings)
+        if not self.monitor.suspend():
+            QMessageBox.warning(self, "Cannot start run", "The serial port is still busy; try again.")
+            return
         self.chart.clear()
+        self.chart_mode = "run"
         try:
             run_id = self.engine.start(profile)
         except (RunEngineError, OSError, ValueError) as exc:
             QMessageBox.warning(self, "Cannot start run", str(exc))
+            self._resume_monitor()
             return
         self._open_live_log(run_id, profile, settings)
         self.live_page.manual_target_spin.setValue(profile.target_setpoint_c)
@@ -316,6 +389,9 @@ class MainWindow(QMainWindow):
     def _on_engine_finished(self, outcome: str) -> None:
         saved = self._close_live_log()
         self.show_status_text(f"Run {outcome.lower()}" + (f" · log saved to {saved}" if saved else ""))
+        if saved:
+            self.live_page.add_event(f"Run {outcome.lower()} · log saved to {saved}")
+        self._resume_monitor()
         self.live_page.refresh()
         self.data_page.refresh()
         self.tuning_page.refresh()
@@ -323,7 +399,17 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ close
 
     def closeEvent(self, event) -> None:  # noqa: N802 (Qt override)
+        if self.engine.active:
+            answer = QMessageBox.question(
+                self,
+                "Run in progress",
+                "A run is active. Closing stops it and sets every zone to its lowest set point. Close anyway?",
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                event.ignore()
+                return
         self.engine.shutdown()
+        self.monitor.shutdown()
         self._close_live_log()
         self.logger.close()
         event.accept()
