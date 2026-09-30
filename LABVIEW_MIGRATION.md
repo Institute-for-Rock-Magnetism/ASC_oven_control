@@ -105,6 +105,17 @@ lab PC's COM4 (Silicon Labs CP210x USB-UART → RS-485).
    The fan is not wired to the Watlows; it is switched by the onboard
    timer circuit.
 
+8. **Heated runs at 100 °C.** Run 2 (20 °C/min): Zones 1/3 overshot
+   +10 °C and Zone 2, the middle zone, +16 °C at 0 % output (heater
+   element lag plus heat from its neighbours); the UI hang at 53 min
+   ended it (now the control loop runs in its own process). Run 3
+   (10 °C/min, approach 40 °C at 20 %): completed unattended in 36 min,
+   hold from 26 min, Zones 1/3 +2 °C, Zone 2 drifted to +5 °C during the
+   hold at 0 % output with Zones 1/3 at 101 °C on 2–3 % output, gradient
+   1–4 °C after the first 8 min. Next: Zones 1/3 offset about −4 °C at
+   100 °C, and retune Zone 2 (it lags early in the ramp, output capped
+   near 30 % by its 65 °C prop band).
+
 ## Remaining commissioning steps
 
 0. Confirm whether the onboard timer also gates heater power (outputs

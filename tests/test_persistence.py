@@ -78,6 +78,17 @@ class RunLoggerTest(unittest.TestCase):
         self.assertEqual(rows[1][2:5], ["99.0", "100.0", "101.0"])
         log.close()
 
+    def test_orphaned_running_runs_marked_interrupted(self):
+        logger = RunLogger(self.db_path)
+        try:
+            orphan = logger.start_run(profile())
+            live = logger.start_run(profile())
+            self.assertEqual(logger.mark_interrupted(keep_run_id=live), [orphan])
+            statuses = dict(logger.conn.execute("SELECT id, status FROM runs").fetchall())
+            self.assertEqual(statuses, {orphan: "interrupted", live: "running"})
+        finally:
+            logger.close()
+
     def test_run_lifecycle(self):
         logger = RunLogger(self.db_path)
         try:

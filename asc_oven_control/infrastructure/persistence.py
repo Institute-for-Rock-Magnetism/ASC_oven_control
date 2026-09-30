@@ -136,6 +136,25 @@ class RunLogger:
             )
             self.conn.commit()
 
+    def mark_interrupted(self, keep_run_id: int | None = None) -> list[int]:
+        """Runs still marked 'running' whose process is gone (e.g. killed) -> 'interrupted'."""
+        with self._lock:
+            ids = [
+                row[0]
+                for row in self.conn.execute("SELECT id FROM runs WHERE status = 'running'")
+                if row[0] != keep_run_id
+            ]
+            for run_id in ids:
+                last = self.conn.execute(
+                    "SELECT MAX(timestamp) FROM samples WHERE run_id = ?", (run_id,)
+                ).fetchone()[0]
+                self.conn.execute(
+                    "UPDATE runs SET status = 'interrupted', stopped_at = COALESCE(stopped_at, ?) WHERE id = ?",
+                    (last, run_id),
+                )
+            self.conn.commit()
+        return ids
+
     def latest_run_id(self) -> int | None:
         with self._lock:
             row = self.conn.execute("SELECT id FROM runs ORDER BY id DESC LIMIT 1").fetchone()

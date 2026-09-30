@@ -77,6 +77,7 @@ class MainWindow(QMainWindow):
 
         self._update_mode_labels()
         info = self.engine.attach()
+        self.logger.mark_interrupted(keep_run_id=int(info["run_id"]) if info is not None else None)
         if info is not None:
             # A run outlived the previous UI session: follow it instead of
             # starting the idle monitor (the run process owns the port).
