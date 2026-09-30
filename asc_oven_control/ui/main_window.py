@@ -376,6 +376,8 @@ class MainWindow(QMainWindow):
         QMessageBox.critical(self, "Run failed", message)
 
     def runs_dir(self) -> Path | None:
+        if self.config.runs_dir:
+            return Path(self.config.runs_dir)
         if self.config_path is not None:
             return self.config_path.parent.parent / "runs"
         return Path(self.config.data_dir) / "runs" if self.config.data_dir else None

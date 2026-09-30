@@ -32,6 +32,15 @@ connection**. Runtime files (configuration and the run database) live in
 the platform application-data directory; set `ASC_OVEN_HOME` to use a
 specific runtime directory.
 
+## Run logs
+
+On the lab PC the run and idle CSV logs are written to `run_logs/` in
+this repository (setting `runs_dir` in the app's `config/application.json`;
+without it they go to `<app data>/runs`). `run-NNNN-YYYYMMDD-HHMM.csv` is
+one run's time–temperature record, one row per 2 s poll, with the run
+settings in its `#` header; `idle-YYYYMMDD.csv` holds the readings between
+runs. Commit them after each session to keep the record.
+
 ## Hardware (verified 2026-09-29)
 
 - Three Watlow Series 96 controllers, Modbus slaves 1, 2, 3 (Zone 1–3),

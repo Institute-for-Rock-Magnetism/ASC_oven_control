@@ -99,6 +99,8 @@ class ApplicationConfig:
     poll_seconds: float = 0.5
     serial: SerialProfile = SerialProfile()
     zone_addresses: tuple[int, int, int] = DEFAULT_ZONE_ADDRESSES
+    # Folder for run and idle CSV logs; None = "<app data>/runs".
+    runs_dir: str | None = None
 
     def __post_init__(self) -> None:
         if self.version != APPLICATION_CONFIG_VERSION:
@@ -119,6 +121,8 @@ class ApplicationConfig:
             or len(set(addresses)) != 3
         ):
             raise ConfigValidationError("zone_addresses must be three distinct integers in 1..247")
+        if self.runs_dir is not None and not isinstance(self.runs_dir, str):
+            raise ConfigValidationError("runs_dir must be a string or None")
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -128,11 +132,12 @@ class ApplicationConfig:
             "poll_seconds": self.poll_seconds,
             "serial": self.serial.to_dict(),
             "zone_addresses": list(self.zone_addresses),
+            "runs_dir": self.runs_dir,
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ApplicationConfig":
-        known = {"version", "simulation_mode", "data_dir", "poll_seconds", "serial", "zone_addresses"}
+        known = {"version", "simulation_mode", "data_dir", "poll_seconds", "serial", "zone_addresses", "runs_dir"}
         unknown = set(data) - known
         if unknown:
             raise ConfigValidationError(f"unknown application config fields: {sorted(unknown)}")
@@ -146,4 +151,5 @@ class ApplicationConfig:
             poll_seconds=data.get("poll_seconds", 0.5),
             serial=serial,
             zone_addresses=tuple(addresses) if isinstance(addresses, (list, tuple)) else addresses,
+            runs_dir=data.get("runs_dir"),
         )
