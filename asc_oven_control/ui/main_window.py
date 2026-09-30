@@ -396,7 +396,8 @@ class MainWindow(QMainWindow):
             f"operator={profile.operator} batch={profile.batch_id} sample={profile.sample_id} "
             f"atmosphere={profile.atmosphere}",
             f"target={profile.target_setpoint_c:g}C ramp={profile.ramp_rate_c_per_min:g}C/min "
-            f"soak={profile.soak_time_sec:g}s alarm_high={profile.alarm_high_c:g}C",
+            f"soak={profile.soak_time_sec:g}s alarm_high={profile.alarm_high_c:g}C "
+            f"max_run_time={profile.max_run_time_sec / 60:g}min",
             f"hold_band={settings.hold_band_c:g}C max_gradient={settings.max_gradient_c:g}C "
             f"approach_band={settings.approach_band_c:g}C approach_rate={settings.approach_rate_fraction:g} "
             f"soak_band={settings.soak_band_c:g}C strict_soak={settings.strict_soak} "

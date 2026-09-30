@@ -137,12 +137,22 @@ class SetupPage(QWidget):
         self.soak_spin.setRange(0, 604800)
         self.soak_spin.setValue(600)
         self.soak_spin.setSuffix(" s")
+        self.max_time_spin = QSpinBox()
+        self.max_time_spin.setRange(0, 10000)
+        self.max_time_spin.setValue(0)
+        self.max_time_spin.setSuffix(" min")
+        self.max_time_spin.setSpecialValueText("no limit")
+        self.max_time_spin.setToolTip(
+            "End the run with the heaters off after this long, even if the hold is unfinished "
+            "(set it below the oven's onboard timer for unattended runs). 0 = no limit."
+        )
         self.alarm_high_spin = self._temperature_spin(1200.0, -100.0, 1600.0, " °C")
         self.alarm_low_spin = self._temperature_spin(10.0, -100.0, 1600.0, " °C")
         for label, widget in (
             ("Target", self.target_spin),
             ("Ramp rate", self.ramp_spin),
             ("Soak time", self.soak_spin),
+            ("Max run time", self.max_time_spin),
             ("High alarm", self.alarm_high_spin),
             ("Low alarm", self.alarm_low_spin),
         ):
@@ -250,6 +260,7 @@ class SetupPage(QWidget):
             "target_c": self.target_spin,
             "ramp_c_per_min": self.ramp_spin,
             "soak_s": self.soak_spin,
+            "max_run_min": self.max_time_spin,
             "alarm_high_c": self.alarm_high_spin,
             "alarm_low_c": self.alarm_low_spin,
             "field_uT": self.field_amplitude_spin,
@@ -453,6 +464,7 @@ class SetupPage(QWidget):
                 notes=self.notes_edit.toPlainText().strip(),
                 field_enabled=self.field_check.isChecked(),
                 field_amplitude_uT=self.field_amplitude_spin.value(),
+                max_run_time_sec=float(self.max_time_spin.value() * 60),
             )
         except DomainValidationError as exc:
             raise ValueError(str(exc)) from exc

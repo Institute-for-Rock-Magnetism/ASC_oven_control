@@ -222,6 +222,13 @@ class RunController:
             last = started
             if self.phase == OvenPhase.COMPLETE:
                 return "Complete"
+            limit = self.profile.max_run_time_sec
+            if limit and self.elapsed_sec >= limit:
+                self.emit(
+                    "state", str(self.phase),
+                    f"Maximum run time {limit / 60:.0f} min reached — ending run, heaters off",
+                )
+                return "Timed out"
             self._wait(max(self.poll_seconds - (time.monotonic() - started), 0.0))
         return "Tripped" if self.tripped else "Aborted"
 

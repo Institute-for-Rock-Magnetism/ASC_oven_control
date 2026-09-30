@@ -187,6 +187,10 @@ class RunProfile:
     field_enabled: bool = False
     field_amplitude_uT: float = 0.0
     pid: PidParameters = PidParameters()
+    # Hard limit on the whole run (0 = none). For unattended runs: the run
+    # ends with the heaters off at this time even if the hold is unfinished,
+    # e.g. before the oven's onboard timer cuts the heater power.
+    max_run_time_sec: float = 0.0
 
     def __post_init__(self) -> None:
         errors: dict[str, tuple[str, ...]] = {}
@@ -203,6 +207,8 @@ class RunProfile:
             _nonnegative("ramp_rate_c_per_min", float(self.ramp_rate_c_per_min), errors)
         if _finite_required("soak_time_sec", self.soak_time_sec, errors):
             _nonnegative("soak_time_sec", float(self.soak_time_sec), errors)
+        if _finite_required("max_run_time_sec", self.max_run_time_sec, errors):
+            _nonnegative("max_run_time_sec", float(self.max_run_time_sec), errors)
         _finite_required("alarm_high_c", self.alarm_high_c, errors)
         _finite_required("alarm_low_c", self.alarm_low_c, errors)
         if "alarm_high_c" not in errors and "alarm_low_c" not in errors:
@@ -233,6 +239,7 @@ class RunProfile:
             "field_enabled": self.field_enabled,
             "field_amplitude_uT": self.field_amplitude_uT,
             "pid": self.pid.to_dict(),
+            "max_run_time_sec": self.max_run_time_sec,
         }
 
     @classmethod
@@ -258,6 +265,7 @@ class RunProfile:
             notes=data.get("notes", ""),
             field_enabled=bool(data.get("field_enabled", False)),
             field_amplitude_uT=data.get("field_amplitude_uT", 0.0),
+            max_run_time_sec=data.get("max_run_time_sec", 0.0),
             pid=pid,
         )
 

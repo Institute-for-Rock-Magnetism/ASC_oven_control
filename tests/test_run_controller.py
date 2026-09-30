@@ -95,6 +95,17 @@ class RunControllerTest(unittest.TestCase):
         self.assertEqual(controller.run(), "Tripped")
         self.assertEqual(backend.shutdowns, 1)
 
+    def test_max_run_time_ends_run_with_heaters_off(self):
+        from dataclasses import replace
+
+        prof = replace(profile(target=300.0), max_run_time_sec=60.0)
+        controller, backend, run_id = self.make(prof)
+        self.assertEqual(controller.run(), "Timed out")
+        self.assertEqual(backend.shutdowns, 1)
+        self.assertLess(controller.elapsed_sec, 70.0)
+        status = self.logger.conn.execute("SELECT status FROM runs WHERE id = ?", (run_id,)).fetchone()[0]
+        self.assertEqual(status, "timed out")
+
     def test_settings_round_trip(self):
         s = GradientSettings(zone_offsets_c=(-8.0, 0.0, -8.0), max_gradient_c=5.0)
         self.assertEqual(settings_from_dict(settings_to_dict(s)), s)
