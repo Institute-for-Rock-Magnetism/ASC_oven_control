@@ -1,0 +1,5 @@
+# ASC oven run 6 started 2026-09-30 12:21:50 (Watlow hardware on COM4)
+# operator=Diego batch=Lv4-Th2 sample= atmosphere=Air
+# target=100C ramp=10C/min soak=600s alarm_high=130C
+# hold_band=30C max_gradient=5C approach_band=40C approach_rate=0.2 soak_band=3C strict_soak=False trims=(0.0, 0.0, 0.0) cap_depth=10C center_comp=0
+timestamp,elapsed_min,zone1_c,zone2_c,zone3_c,zone1_sp_c,zone2_sp_c,zone3_sp_c,zone1_power_pct,zone2_power_pct,zone3_power_pct,ramp_setpoint_c,target_c,gradient_c,phase,control_phase,soak_elapsed_s,out_of_band_s,alarm,zone1_target_c,zone2_target_c,zone3_target_c,center_comp_c

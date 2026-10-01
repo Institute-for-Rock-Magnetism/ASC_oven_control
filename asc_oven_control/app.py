@@ -22,6 +22,7 @@ from asc_oven_control.ui.theme import build_style
 
 APP_NAME = "ASC Oven Control"
 APP_VERSION = "0.1.0"
+APP_USER_MODEL_ID = "edu.umn.irm.asc-oven-control"
 
 
 def resource_path(relative_path: str) -> Path:
@@ -64,11 +65,24 @@ def load_config(home: Path) -> ApplicationConfig:
 
 def create_application(argv: list[str] | None = None) -> tuple[QApplication, MainWindow]:
     """Build the QApplication and main window with safe defaults."""
+    if sys.platform == "win32":
+        # Own taskbar identity: otherwise Windows groups the window under
+        # python(w).exe and shows that (blank) icon instead of ours.
+        try:
+            import ctypes
+
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(APP_USER_MODEL_ID)
+        except (AttributeError, OSError):
+            pass
     app = QApplication(argv or sys.argv)
     app.setApplicationName(APP_NAME)
     app.setApplicationVersion(APP_VERSION)
     app.setOrganizationName("ASC Laboratory")
-    app.setWindowIcon(QIcon(str(resource_path("assets/asc_oven_icon.png"))))
+    icon_file = "assets/asc_oven_icon.ico" if sys.platform == "win32" else "assets/asc_oven_icon.png"
+    icon_path = resource_path(icon_file)
+    if not icon_path.exists():
+        icon_path = resource_path("assets/asc_oven_icon.png")
+    app.setWindowIcon(QIcon(str(icon_path)))
     app.setStyle("Fusion")
     app.setStyleSheet(build_style(resource_path("assets/ui")))
 

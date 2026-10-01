@@ -21,8 +21,12 @@ simply stops being read; the run carries on.
 Safety behavior (unchanged from the in-process engine):
 
 - Pause holds the set points currently in the controllers.
-- Stop, completion, an over-temperature trip and a communication failure
-  all end with a best-effort safe shutdown.
+- The end of the hold, the maximum run time and an over-temperature trip
+  end the *heating*: heaters off at once, then the run keeps recording the
+  cool-down until Stop (or until the controllers stop answering, e.g. the
+  oven power is switched off), so every run includes its cooling curve.
+- Stop and a communication failure while heating end with a best-effort
+  safe shutdown.
 """
 
 from __future__ import annotations
@@ -143,6 +147,12 @@ class RunController:
         self.paused = False
         self.aborted = False
         self.tripped = ""
+        # After the heating ends (hold complete, max run time or trip) the
+        # heaters go off and the run keeps recording the cool-down until the
+        # operator presses Stop. ``heating_outcome`` is what ended the heating.
+        self.cooling = False
+        self.heating_outcome = ""
+        self.cooling_failures = 0
 
     # -------------------------------------------------------------- commands
 
@@ -150,6 +160,8 @@ class RunController:
         kind, *args = command
         if kind == "stop":
             self.aborted = True
+        elif kind in ("pause", "resume") and self.cooling:
+            return  # nothing to hold: the heaters are already off
         elif kind == "pause":
             self.paused = True
             self.emit("state", str(OvenPhase.PAUSED), "Run paused — holding current setpoints")
@@ -199,7 +211,8 @@ class RunController:
                     )
                 outcome = self._loop()
             finally:
-                self._shutdown_heaters()
+                if not (self.cooling and self.cooling_failures):
+                    self._shutdown_heaters()  # already off if the controllers went away while cooling
                 self.backend.close()
         except Exception as exc:  # noqa: BLE001 - report and finish
             self.emit("failed", str(exc))
@@ -214,23 +227,53 @@ class RunController:
         except Exception as exc:  # noqa: BLE001 - surface, never mask the outcome
             self.emit("state", str(self.phase), f"Safe shutdown failed: {exc}")
 
+    def _start_cooling(self, outcome: str, message: str) -> None:
+        """End the heating: heaters off now, keep recording until Stop."""
+        self.cooling = True
+        self.paused = False
+        self.heating_outcome = outcome
+        self._shutdown_heaters()
+        self.phase = OvenPhase.COOLING
+        self.detail_phase = str(OvenPhase.COOLING)
+        self.emit("state", str(OvenPhase.COOLING), message + " — heaters off, recording the cool-down until Stop")
+
     def _loop(self) -> str:
         last = time.monotonic()
         while not self.aborted:
             started = time.monotonic()
-            self._tick(last, advance_control=not self.paused)
+            if self.cooling:
+                if not self._cooling_tick(last):
+                    break
+            else:
+                self._tick(last, advance_control=not self.paused)
+                if self.tripped and not self.cooling:
+                    self._start_cooling("Tripped", self.tripped)
+                elif self.coordinator.phase == ZonePhase.COMPLETE:
+                    self._start_cooling("Complete", "Hold complete")
+                else:
+                    limit = self.profile.max_run_time_sec
+                    if limit and self.elapsed_sec >= limit:
+                        self._start_cooling("Timed out", f"Maximum run time {limit / 60:.0f} min reached")
             last = started
-            if self.phase == OvenPhase.COMPLETE:
-                return "Complete"
-            limit = self.profile.max_run_time_sec
-            if limit and self.elapsed_sec >= limit:
-                self.emit(
-                    "state", str(self.phase),
-                    f"Maximum run time {limit / 60:.0f} min reached — ending run, heaters off",
-                )
-                return "Timed out"
             self._wait(max(self.poll_seconds - (time.monotonic() - started), 0.0))
+        if self.heating_outcome:
+            return self.heating_outcome
         return "Tripped" if self.tripped else "Aborted"
+
+    def _cooling_tick(self, last: float) -> bool:
+        """Record one cool-down sample; False ends the recording."""
+        from asc_oven_control.infrastructure.serial_transport import CommunicationError
+
+        try:
+            self._tick(last, advance_control=False)
+            self.cooling_failures = 0
+        except CommunicationError as exc:
+            self.cooling_failures += 1
+            if self.cooling_failures >= 3:
+                # Typically the oven power was switched off after the run.
+                self.emit("state", str(OvenPhase.COOLING), f"Controllers stopped responding ({exc}); recording ended")
+                return False
+        return True
 
     def _tick(self, last: float, advance_control: bool) -> None:
         dt = (time.monotonic() - last) * self.time_scale
@@ -249,10 +292,9 @@ class RunController:
         alarm = evaluate_alarm(zones, self.profile.alarm_high_c, self.profile.alarm_low_c)
         if not alarm and reading.alarms:
             alarm = reading.alarms[0]
-        if max(zones) >= self.profile.alarm_high_c and not self.aborted:
+        if max(zones) >= self.profile.alarm_high_c and not self.tripped:
+            # The loop turns the heaters off and keeps recording (cooling).
             self.tripped = f"Over-temperature trip: {alarm}"
-            self.emit("state", str(self.phase), self.tripped + " — heaters off")
-            self.aborted = True
 
         now = time.time()
         phase = OvenPhase.PAUSED if self.paused else self.phase
@@ -311,7 +353,7 @@ def _phase_message(decision) -> str:
         ZonePhase.APPROACH: "Approaching target at reduced rate",
         ZonePhase.SETTLING: "At target, waiting for all zones to settle",
         ZonePhase.SOAKING: "All zones in band, soaking",
-        ZonePhase.COMPLETE: "Run complete, heaters off",
+        ZonePhase.COMPLETE: "Hold complete",
     }.get(decision.phase, decision.phase)
 
 

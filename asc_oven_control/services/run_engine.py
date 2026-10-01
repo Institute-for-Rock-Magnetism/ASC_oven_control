@@ -68,6 +68,7 @@ class RunEngine(QObject):
         self.run_id: Optional[int] = None
         self.last_run_id: Optional[int] = None
         self.attached = False
+        self.cooling = False  # heating finished; still recording until Stop
         self._process: Optional[multiprocessing.Process] = None
         self._commands = None
         self._events = None
@@ -132,6 +133,7 @@ class RunEngine(QObject):
         self.profile = profile
         self.run_id = run_id
         self.attached = False
+        self.cooling = False
         self._last_snapshot = None
         self.state = "Running"
         self.state_changed.emit(self.state, "Run started")
@@ -159,7 +161,7 @@ class RunEngine(QObject):
             self._commands.put(command)
 
     def pause(self) -> None:
-        if self.active and not self.attached:
+        if self.active and not self.attached and not self.cooling:
             self.state = "Paused"
             self._send("pause")
 
@@ -235,7 +237,10 @@ class RunEngine(QObject):
             self.snapshot_ready.emit(payload[0])
         elif kind == "state":
             state, message = payload
-            if state in ("Ramping", "Soaking"):
+            if state == "Cooling":
+                self.cooling = True
+                self.state = "Running"
+            elif state in ("Ramping", "Soaking"):
                 self.state = "Paused" if self.state == "Paused" else "Running"
             elif state == "Paused":
                 self.state = "Paused"
@@ -251,6 +256,7 @@ class RunEngine(QObject):
         self.state = "Completed" if outcome == "Complete" else outcome
         self.run_id = None
         self.attached = False
+        self.cooling = False
         self._attach_info = None
         if self._process is not None:
             self._process.join(2)
@@ -263,6 +269,7 @@ class RunEngine(QObject):
         for row in rows[self._attach_rows:]:
             snapshot = _snapshot_from_row(row)
             if snapshot is not None:
+                self.cooling = snapshot["phase"] == "Cooling"
                 self._last_snapshot = snapshot
                 self.snapshot_ready.emit(snapshot)
         self._attach_rows = len(rows)

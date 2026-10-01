@@ -629,10 +629,12 @@ class LiveControlPage(QWidget):
     def refresh(self) -> None:
         snapshot = self.window.engine.snapshot
         running = self.window.engine.active
+        cooling = running and self.window.engine.cooling
         self.start_button.setEnabled(not running)
-        self.pause_button.setEnabled(running and self.window.engine.state == "Running")
-        self.resume_button.setEnabled(running and self.window.engine.state == "Paused")
+        self.pause_button.setEnabled(running and not cooling and self.window.engine.state == "Running")
+        self.resume_button.setEnabled(running and not cooling and self.window.engine.state == "Paused")
         self.stop_button.setEnabled(running)
+        self.stop_button.setText("Stop recording" if cooling else "Stop")
         if not running and self._live_reading is not None and not self.window.config.simulation_mode:
             self.apply_reading(self._live_reading)
         elif running or self.window.engine._last_snapshot is not None:

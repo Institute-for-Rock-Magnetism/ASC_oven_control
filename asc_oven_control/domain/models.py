@@ -60,6 +60,7 @@ class OvenPhase(StringEnum):
     SOAKING = "Soaking"
     PAUSED = "Paused"
     COMPLETE = "Complete"
+    COOLING = "Cooling"  # heating finished, heaters off, still recording
     ABORTED = "Aborted"
     FAILED = "Failed"
 

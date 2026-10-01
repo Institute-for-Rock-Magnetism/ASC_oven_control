@@ -282,8 +282,10 @@ class MainWindow(QMainWindow):
                 f"This run will write set points to the three Watlow controllers on "
                 f"{self.config.serial.port} and heat the oven to "
                 f"{profile.target_setpoint_c:.0f} °C at {profile.ramp_rate_c_per_min:g} °C/min.\n\n"
-                "Stop, completion, or a communication failure sets every zone to its "
-                "lowest set point. Continue?",
+                "When the hold completes (or the max run time / trip is reached) the heaters "
+                "go off and the run keeps recording the cool-down until you press Stop. "
+                "Stop or a communication failure also sets every zone to its lowest set point. "
+                "Continue?",
             )
             if answer != QMessageBox.StandardButton.Yes:
                 return

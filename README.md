@@ -77,6 +77,29 @@ reads/writes PID values and runs the Series 96 auto-tune on all three
 zones together; do this once near the working temperature with heater
 power on.
 
+## Build the Windows application
+
+```bash
+pip install -e '.[build]' pillow
+pyinstaller ASC-Oven-Control.spec --noconfirm --clean
+```
+
+The result is `dist/ASC Oven Control/ASC Oven Control.exe` with the oven
+icon (`assets/asc_oven_icon.ico`) embedded; the app also sets its own
+Windows AppUserModelID so the taskbar shows that icon. The spec bundles
+the conda `Library/bin` DLLs (sqlite3, ffi, OpenSSL, bz2, lzma) that a
+conda-based Python needs. On the lab PC a Desktop shortcut points at the
+exe; pin it to the taskbar from its right-click menu.
+
+## Runs record the cool-down
+
+When the hold completes (or the maximum run time or over-temperature trip
+is reached) the heaters go off at once and the run continues in a
+**Cooling** phase, logging until the operator presses **Stop recording**,
+so every run file contains its cooling curve. If the controllers stop
+answering while cooling (oven power switched off) the recording ends as
+complete.
+
 ## Build the macOS application
 
 ```bash
