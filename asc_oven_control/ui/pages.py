@@ -207,6 +207,20 @@ class SetupPage(QWidget):
         ):
             gradient_form.addRow(label, widget)
         gradient_form.addRow("Zone 1/2/3 trim", offsets_row)
+        self.auto_offsets_check = QCheckBox("Auto (from calibration)")
+        self.auto_offsets_check.setChecked(True)
+        self.auto_offsets_check.setToolTip(
+            "Set the zone trims from the offsets learned in earlier runs, so each zone lands on "
+            "the target and Zone 2 (middle) drifts up to it rather than past it. Every finished "
+            "run updates the calibration."
+        )
+        self.auto_offsets_check.toggled.connect(self.update_auto_offsets)
+        self.calibration_label = QLabel("")
+        self.calibration_label.setObjectName("muted")
+        self.calibration_label.setWordWrap(True)
+        gradient_form.addRow("", self.auto_offsets_check)
+        gradient_form.addRow("", self.calibration_label)
+        self.target_spin.valueChanged.connect(self.update_auto_offsets)
         self.strict_soak_check = QCheckBox("Pause when out of band")
         self.strict_soak_check.setChecked(defaults.strict_soak)
         self.strict_soak_check.setToolTip(
@@ -233,6 +247,7 @@ class SetupPage(QWidget):
         gradient.body.addLayout(gradient_form)
         grid.addWidget(gradient, 3, 0)
         self.load_form_state()
+        self.update_auto_offsets()
 
         grid.setColumnStretch(0, 1)
         grid.setColumnStretch(1, 1)
@@ -287,6 +302,7 @@ class SetupPage(QWidget):
         state["atmosphere"] = self.atmosphere_combo.currentText()
         state["field_enabled"] = self.field_check.isChecked()
         state["strict_soak"] = self.strict_soak_check.isChecked()
+        state["auto_offsets"] = self.auto_offsets_check.isChecked()
         state["notes"] = self.notes_edit.toPlainText()
         return state
 
@@ -329,6 +345,7 @@ class SetupPage(QWidget):
             self.atmosphere_combo.setCurrentText(state["atmosphere"])
         self.field_check.setChecked(bool(state.get("field_enabled", False)))
         self.strict_soak_check.setChecked(bool(state.get("strict_soak", True)))
+        self.auto_offsets_check.setChecked(bool(state.get("auto_offsets", True)))
         self.notes_edit.setPlainText(str(state.get("notes", "")))
 
     # ------------------------------------------------------------ connection
@@ -433,7 +450,35 @@ class SetupPage(QWidget):
         mode = "simulation" if config.simulation_mode else f"hardware on {config.serial.port}"
         self.connection_result.setText(f"Saved: {mode}")
 
+    def update_auto_offsets(self, *_args) -> None:
+        """Fill the zone trims from the learned calibration (when Auto is on)."""
+        auto = self.auto_offsets_check.isChecked()
+        for spin in self.offset_spins:
+            spin.setEnabled(not auto)
+        calibration = self.window.load_calibration()
+        target = self.target_spin.value()
+        tested = ", ".join(f"{t:g}" for t in calibration.tested_targets()) or "none yet"
+        offsets = calibration.offsets_for(target)
+        if offsets is None:
+            self.calibration_label.setText("No calibrated runs yet: trims are set by hand.")
+            for spin in self.offset_spins:
+                spin.setEnabled(True)
+            return
+        excess = calibration.expected_excess(target)
+        text = (
+            f"Calibrated trims for {target:g} °C: {offsets[0]:+.0f} / {offsets[1]:+.0f} / {offsets[2]:+.0f} °C "
+            f"(expected hold excess {excess[0]:+.1f} / {excess[1]:+.1f} / {excess[2]:+.1f} °C; tested at {tested} °C)"
+        )
+        if target > max(calibration.tested_targets()) + 1:
+            text += " — above the tested range: extrapolated, watch Zone 2."
+        self.calibration_label.setText(text)
+        if auto:
+            for spin, value in zip(self.offset_spins, offsets):
+                spin.setValue(value)
+
     def collect_settings(self) -> GradientSettings:
+        if self.auto_offsets_check.isChecked():
+            self.update_auto_offsets()
         return GradientSettings(
             hold_band_c=self.hold_band_spin.value(),
             max_gradient_c=self.max_gradient_spin.value(),

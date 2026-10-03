@@ -1,0 +1,126 @@
+{
+  "about": "Hold excess (zone temperature minus its own set point) per run, by target. Written by the ASC Oven Control app; offsets for a new target = -(expected excess).",
+  "center_margin_c": 1.0,
+  "measurements": [
+    {
+      "run": "run-0003-20260930-0912.csv",
+      "target_c": 100.0,
+      "offsets_c": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "typical_excess_c": [
+        1.0,
+        4.0,
+        1.0
+      ],
+      "peak_excess_c": [
+        2.0,
+        5.0,
+        2.0
+      ],
+      "hold_minutes": 9.9
+    },
+    {
+      "run": "run-0004-20260930-1120.csv",
+      "target_c": 100.0,
+      "offsets_c": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "typical_excess_c": [
+        1.0,
+        3.0,
+        1.0
+      ],
+      "peak_excess_c": [
+        2.0,
+        4.0,
+        2.0
+      ],
+      "hold_minutes": 10.0
+    },
+    {
+      "run": "run-0007-20260930-1222.csv",
+      "target_c": 100.0,
+      "offsets_c": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "typical_excess_c": [
+        1.0,
+        3.0,
+        1.0
+      ],
+      "peak_excess_c": [
+        1.0,
+        4.0,
+        2.0
+      ],
+      "hold_minutes": 10.0
+    },
+    {
+      "run": "run-0008-20260930-1851.csv",
+      "target_c": 200.0,
+      "offsets_c": [
+        -5.0,
+        0.0,
+        -5.0
+      ],
+      "typical_excess_c": [
+        4.0,
+        10.0,
+        4.0
+      ],
+      "peak_excess_c": [
+        5.0,
+        11.0,
+        5.0
+      ],
+      "hold_minutes": 10.0
+    },
+    {
+      "run": "run-0009-20261001-0849.csv",
+      "target_c": 200.0,
+      "offsets_c": [
+        -5.0,
+        0.0,
+        -5.0
+      ],
+      "typical_excess_c": [
+        3.0,
+        7.0,
+        3.0
+      ],
+      "peak_excess_c": [
+        5.0,
+        7.0,
+        4.0
+      ],
+      "hold_minutes": 17.9
+    },
+    {
+      "run": "run-0011-20261002-1526.csv",
+      "target_c": 300.0,
+      "offsets_c": [
+        -10.0,
+        -5.0,
+        -10.0
+      ],
+      "typical_excess_c": [
+        4.0,
+        10.0,
+        4.0
+      ],
+      "peak_excess_c": [
+        6.0,
+        10.0,
+        5.0
+      ],
+      "hold_minutes": 20.0
+    }
+  ]
+}

@@ -377,6 +377,47 @@ class MainWindow(QMainWindow):
     def _on_engine_failed(self, message: str) -> None:
         QMessageBox.critical(self, "Run failed", message)
 
+    def calibration_path(self) -> Path | None:
+        """Learned zone-offset calibration; kept in the repo next to run_logs."""
+        runs = self.runs_dir()
+        if runs is None:
+            return None
+        base = runs.parent / "calibration" if self.config.runs_dir else runs
+        return base / "zone_offset_calibration.json"
+
+    def load_calibration(self):
+        from asc_oven_control.domain.calibration import OffsetCalibration
+
+        path = self.calibration_path()
+        try:
+            return OffsetCalibration.load(path) if path is not None else OffsetCalibration()
+        except (OSError, ValueError, KeyError):
+            return OffsetCalibration()
+
+    def _learn_from_run(self, csv_path: str) -> str:
+        """Add a finished run's hold measurement to the calibration."""
+        from asc_oven_control.domain.calibration import CalibrationError, measure_hold
+
+        path = self.calibration_path()
+        if not csv_path or path is None:
+            return ""
+        try:
+            measurement = measure_hold(csv_path)
+        except (CalibrationError, OSError, ValueError, KeyError):
+            return ""
+        calibration = self.load_calibration()
+        calibration.add(measurement)
+        try:
+            calibration.save(path)
+        except OSError:
+            return ""
+        self.setup_page.update_auto_offsets()
+        e = measurement.peak_excess_c
+        return (
+            f"Calibration updated from this run at {measurement.target_c:g} °C "
+            f"(hold peak excess {e[0]:+.0f} / {e[1]:+.0f} / {e[2]:+.0f} °C)"
+        )
+
     def runs_dir(self) -> Path | None:
         if self.config.runs_dir:
             return Path(self.config.runs_dir)
@@ -415,6 +456,9 @@ class MainWindow(QMainWindow):
         self.show_status_text(f"Run {outcome.lower()}" + (f" · log saved to {saved}" if saved else ""))
         if saved:
             self.live_page.add_event(f"Run {outcome.lower()} · log saved to {saved}")
+            learned = self._learn_from_run(saved)
+            if learned:
+                self.live_page.add_event(learned)
         self._resume_monitor()
         self.live_page.refresh()
         self.data_page.refresh()

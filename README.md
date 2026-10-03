@@ -91,6 +91,19 @@ the conda `Library/bin` DLLs (sqlite3, ffi, OpenSSL, bz2, lzma) that a
 conda-based Python needs. On the lab PC a Desktop shortcut points at the
 exe; pin it to the taskbar from its right-click menu.
 
+## Learned zone offsets
+
+During a hold each zone settles some distance from its own set point;
+Zone 2, the middle zone, gains heat from Zones 1 and 3 and drifts high
+(+4–5 °C at 100 °C, +7–11 °C at 200 °C, +10 °C at 300 °C). After every
+finished run the app measures each zone's excess during the hold and adds
+it to `calibration/zone_offset_calibration.json`
+(`asc_oven_control/domain/calibration.py`). With **Auto (from
+calibration)** ticked on the Setup page, the zone trims for any target are
+set to cancel the expected excess — interpolated between tested
+temperatures, trend-extrapolated (capped) above them — with Zone 2 aimed
+1 °C low so its drift ends at the target instead of past it.
+
 ## Runs record the cool-down
 
 When the hold completes (or the maximum run time or over-temperature trip
