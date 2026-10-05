@@ -80,25 +80,43 @@ def read_active_run(control_dir: Path) -> dict | None:
         info = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
-    if not _pid_alive(int(info.get("pid", 0))):
+    if not _pid_alive(int(info.get("pid", 0)), info.get("started")):
         return None
     return info
 
 
-def _pid_alive(pid: int) -> bool:
+def _pid_alive(pid: int, started: float | None = None) -> bool:
+    """True if ``pid`` runs and (when known) was created when the marker was written.
+
+    Windows reuses process ids: a dead run's id can belong to an unrelated
+    process later, so the process creation time must match ``started``.
+    """
     if pid <= 0:
         return False
     if os.name == "nt":
         import ctypes
+        from ctypes import wintypes
 
         kernel32 = ctypes.windll.kernel32
         handle = kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
         if not handle:
             return False
-        code = ctypes.c_ulong()
-        ok = kernel32.GetExitCodeProcess(handle, ctypes.byref(code))
-        kernel32.CloseHandle(handle)
-        return bool(ok) and code.value == 259  # STILL_ACTIVE
+        try:
+            code = wintypes.DWORD()
+            if not kernel32.GetExitCodeProcess(handle, ctypes.byref(code)) or code.value != 259:  # STILL_ACTIVE
+                return False
+            if started is None:
+                return True
+            created, exited, kernel, user = (wintypes.FILETIME() for _ in range(4))
+            if not kernel32.GetProcessTimes(
+                handle, ctypes.byref(created), ctypes.byref(exited), ctypes.byref(kernel), ctypes.byref(user)
+            ):
+                return True
+            ticks = (created.dwHighDateTime << 32) | created.dwLowDateTime  # 100 ns since 1601
+            created_unix = ticks / 1e7 - 11644473600.0
+            return abs(created_unix - float(started)) < 120.0
+        finally:
+            kernel32.CloseHandle(handle)
     try:
         os.kill(pid, 0)
     except OSError:

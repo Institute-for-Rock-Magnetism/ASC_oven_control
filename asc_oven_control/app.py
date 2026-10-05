@@ -32,10 +32,21 @@ def resource_path(relative_path: str) -> Path:
 
 
 def app_home() -> Path:
-    """Runtime directory: ``ASC_OVEN_HOME`` override or platform app data."""
+    """Runtime directory: ``ASC_OVEN_HOME`` override, else ``Documents/ASC Oven Control``.
+
+    Not AppData: on Windows, programs started from a packaged (MSIX) app
+    such as the Claude desktop app have their AppData writes redirected
+    into that package's private folder, so two launches of this app could
+    see different settings and run histories (2026-10-05: an instance
+    started from Explorer found no settings and fell back to simulation).
+    Documents is never redirected.
+    """
     override = os.environ.get("ASC_OVEN_HOME")
     if override:
         return Path(override).expanduser()
+    documents = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DocumentsLocation)
+    if documents:
+        return Path(documents) / "ASC Oven Control"
     base = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppLocalDataLocation)
     return Path(base) / "ASC_oven_control"
 

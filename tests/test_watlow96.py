@@ -138,6 +138,18 @@ class WatlowOvenBackendTest(unittest.TestCase):
             self.assertEqual(bus.slaves[address][316], 1)
             self.assertEqual(bus.slaves[address][300], 0)
 
+    def test_idle_clears_leftover_setpoints_on_local_zones_only(self):
+        backend, bus = self.make()
+        bus.slaves[1][300] = 349  # left by a killed 400 C run
+        bus.slaves[2][300] = 0
+        bus.slaves[3][300] = 351
+        bus.slaves[3][316] = 1  # zone 3 on the oven panel: not ours to change
+        backend.connect()
+        self.assertEqual(backend.clear_leftover_setpoints(), ["Zone 1 (349 °C)"])
+        self.assertEqual(bus.slaves[1][300], 0)
+        self.assertEqual(bus.slaves[3][300], 351)
+        self.assertEqual(backend.clear_leftover_setpoints(), [])
+
     def test_safe_shutdown_drives_all_zones_to_range_low(self):
         backend, bus = self.make()
         backend.connect()

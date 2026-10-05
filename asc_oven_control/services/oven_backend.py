@@ -163,6 +163,27 @@ class WatlowOven(OvenBackend):
                 notes.append(f"Zone {index + 1}")
         return notes
 
+    def clear_leftover_setpoints(self) -> list[str]:
+        """Idle safety: zones on PC (Local) control holding a set point above
+        their lowest value are set back to it (heaters off).
+
+        A run whose process was killed (e.g. the 2026-10-05 400 C run) leaves
+        its last set points in the controllers, which keep them through a
+        power cycle; the oven would heat again as soon as the heater is
+        switched on. Remote (oven panel) zones are left alone.
+        """
+        cleared = []
+        for index, zone in enumerate(self.zones):
+            if zone.identity is not None and zone.identity.remote_setpoint:
+                continue
+            low = zone.setpoint_limits()[0]
+            current = zone.read_setpoint()
+            if current > low:
+                zone.write_setpoint(low)
+                self._last_written[index] = low
+                cleared.append(f"Zone {index + 1} ({current} °C)")
+        return cleared
+
     def release_control(self) -> None:
         """Hand every zone back to the oven panel (remote set point)."""
         errors = []

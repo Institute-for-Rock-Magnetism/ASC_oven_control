@@ -26,12 +26,13 @@ from asc_oven_control.services.monitor import HardwareMonitor
 from asc_oven_control.services.oven_backend import WatlowOven
 from asc_oven_control.services.run_engine import HARDWARE_MIN_POLL_S, RunEngine, RunEngineError
 from asc_oven_control.ui.live_plot import create_trend_chart
-from asc_oven_control.ui.pages import DataPage, InstrumentPage, LiveControlPage, SetupPage, TuningPage
+from asc_oven_control.ui.history import RunHistoryPage
+from asc_oven_control.ui.pages import InstrumentPage, LiveControlPage, SetupPage, TuningPage
 
 NAV_ITEMS = (
     ("01   Setup", "WORKSPACE / SETUP", "Prepare a thermal run"),
     ("02   Live control", "WORKSPACE / LIVE CONTROL", "Monitor and guide the oven"),
-    ("03   Run data", "WORKSPACE / RUN DATA", "Review the temperature record"),
+    ("03   Run history", "WORKSPACE / RUN HISTORY", "Every recorded heating"),
     ("04   Controller tuning", "INSTRUMENT / PID TUNING", "Watlow Series 96 PID and auto-tune"),
     ("05   Instrument reference", "INSTRUMENT / REFERENCE", "Protocol and register map"),
 )
@@ -74,6 +75,7 @@ class MainWindow(QMainWindow):
         self.engine.state_changed.connect(self._on_state_changed)
         self.monitor.reading_ready.connect(self._on_monitor_reading)
         self.monitor.error.connect(self._on_monitor_error)
+        self.monitor.notice.connect(self._on_monitor_notice)
 
         self._update_mode_labels()
         info = self.engine.attach()
@@ -85,7 +87,7 @@ class MainWindow(QMainWindow):
             self.current_csv = info.get("csv_path", "")
             self.live_page.add_event(
                 f"Reattached to run {info['run_id']} still running in the background (target "
-                f"{info.get('target_c', 0):.0f} °C); Stop works as usual"
+                f"{info.get('target_c', 0):.0f} Â°C); Stop works as usual"
             )
         else:
             self._resume_monitor()
@@ -132,7 +134,11 @@ class MainWindow(QMainWindow):
                 }
             )
         alarm = reading.alarms[0] if reading.alarms else ""
-        self.status_text.setText(alarm or f"Live: {self.config.serial.port} · no run active")
+        self.status_text.setText(alarm or f"Live: {self.config.serial.port} Â· no run active")
+
+    def _on_monitor_notice(self, message: str) -> None:
+        self.live_page.add_event(message)
+        self.status_text.setText(message)
 
     def _on_monitor_error(self, message: str) -> None:
         if not self.engine.active:
@@ -170,7 +176,7 @@ class MainWindow(QMainWindow):
 
         self.setup_page = SetupPage(self)
         self.live_page = LiveControlPage(self)
-        self.data_page = DataPage(self)
+        self.data_page = RunHistoryPage(self)
         self.tuning_page = TuningPage(self)
         self.instrument_page = InstrumentPage(self)
         self.pages = QStackedWidget()
@@ -208,7 +214,7 @@ class MainWindow(QMainWindow):
     def mode_text(self) -> str:
         if self.config.simulation_mode:
             return "SIMULATION\nNo physical ports opened"
-        return f"HARDWARE · {self.config.serial.port}\nWatlow Series 96 × 3"
+        return f"HARDWARE Â· {self.config.serial.port}\nWatlow Series 96 Ã— 3"
 
     def _update_mode_labels(self) -> None:
         self.mode_footer.setText(self.mode_text())
@@ -230,7 +236,7 @@ class MainWindow(QMainWindow):
 
     def _build_header(self) -> QHBoxLayout:
         layout = QHBoxLayout()
-        sidebar_toggle = QPushButton("☰")
+        sidebar_toggle = QPushButton("â˜°")
         sidebar_toggle.setObjectName("iconButton")
         sidebar_toggle.setToolTip("Show or hide the sidebar")
         sidebar_toggle.clicked.connect(self.toggle_sidebar)
@@ -245,7 +251,7 @@ class MainWindow(QMainWindow):
         title_box.addWidget(self.page_title)
         layout.addLayout(title_box)
         layout.addStretch()
-        self.status_dot = QLabel("●")
+        self.status_dot = QLabel("â—")
         self.status_dot.setObjectName("statusDot")
         self.status_text = QLabel("")
         self.status_text.setObjectName("statusText")
@@ -281,7 +287,7 @@ class MainWindow(QMainWindow):
                 "Start hardware run",
                 f"This run will write set points to the three Watlow controllers on "
                 f"{self.config.serial.port} and heat the oven to "
-                f"{profile.target_setpoint_c:.0f} °C at {profile.ramp_rate_c_per_min:g} °C/min.\n\n"
+                f"{profile.target_setpoint_c:.0f} Â°C at {profile.ramp_rate_c_per_min:g} Â°C/min.\n\n"
                 "When the hold completes (or the max run time / trip is reached) the heaters "
                 "go off and the run keeps recording the cool-down until you press Stop. "
                 "Stop or a communication failure also sets every zone to its lowest set point. "
@@ -329,13 +335,13 @@ class MainWindow(QMainWindow):
         value = self.live_page.manual_target_spin.value()
         self.engine.set_manual_target(value)
         self.setup_page.target_spin.setValue(value)
-        self.show_status_text(f"Target set to {value:.1f} °C")
+        self.show_status_text(f"Target set to {value:.1f} Â°C")
 
     def apply_manual_ramp(self) -> None:
         value = self.live_page.manual_ramp_spin.value()
         self.engine.set_ramp_rate(value)
         self.setup_page.ramp_spin.setValue(value)
-        self.show_status_text(f"Ramp rate set to {value:.1f} °C/min")
+        self.show_status_text(f"Ramp rate set to {value:.1f} Â°C/min")
 
     def apply_manual_offsets(self) -> None:
         from dataclasses import replace
@@ -344,7 +350,7 @@ class MainWindow(QMainWindow):
         self.engine.set_settings(replace(self.engine.settings, zone_offsets_c=offsets))
         for spin, value in zip(self.setup_page.offset_spins, offsets):
             spin.setValue(value)
-        self.show_status_text("Zone offsets set to " + " / ".join(f"{o:+.1f}" for o in offsets) + " °C")
+        self.show_status_text("Zone offsets set to " + " / ".join(f"{o:+.1f}" for o in offsets) + " Â°C")
 
     def apply_manual_field(self) -> None:
         enabled = self.live_page.live_field_check.isChecked()
@@ -352,7 +358,7 @@ class MainWindow(QMainWindow):
         self.engine.set_field(enabled, amplitude)
         self.setup_page.field_check.setChecked(enabled)
         self.show_status_text(
-            f"Field {'ON' if enabled else 'OFF'} · {amplitude:.0f} µT"
+            f"Field {'ON' if enabled else 'OFF'} Â· {amplitude:.0f} ÂµT"
         )
 
     def show_status_text(self, text: str) -> None:
@@ -414,8 +420,8 @@ class MainWindow(QMainWindow):
         self.setup_page.update_auto_offsets()
         e = measurement.peak_excess_c
         return (
-            f"Calibration updated from this run at {measurement.target_c:g} °C "
-            f"(hold peak excess {e[0]:+.0f} / {e[1]:+.0f} / {e[2]:+.0f} °C)"
+            f"Calibration updated from this run at {measurement.target_c:g} Â°C "
+            f"(hold peak excess {e[0]:+.0f} / {e[1]:+.0f} / {e[2]:+.0f} Â°C)"
         )
 
     def runs_dir(self) -> Path | None:
@@ -453,9 +459,9 @@ class MainWindow(QMainWindow):
 
     def _on_engine_finished(self, outcome: str) -> None:
         saved, self.current_csv = self.current_csv, ""
-        self.show_status_text(f"Run {outcome.lower()}" + (f" · log saved to {saved}" if saved else ""))
+        self.show_status_text(f"Run {outcome.lower()}" + (f" Â· log saved to {saved}" if saved else ""))
         if saved:
-            self.live_page.add_event(f"Run {outcome.lower()} · log saved to {saved}")
+            self.live_page.add_event(f"Run {outcome.lower()} Â· log saved to {saved}")
             learned = self._learn_from_run(saved)
             if learned:
                 self.live_page.add_event(learned)

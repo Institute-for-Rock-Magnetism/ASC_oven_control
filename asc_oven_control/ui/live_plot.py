@@ -88,6 +88,26 @@ class LiveTrendPlot(QWidget):
         self.temp_plot.enableAutoRange()
         self.gradient_plot.enableAutoRange()
 
+    def load_series(self, minutes, zones, setpoints, target=None, band=None) -> None:
+        """Show a whole recorded run at once (history view)."""
+        self.clear()
+        self.t = list(minutes)
+        self.zones = [list(series) for series in zones]
+        self.setpoints = list(setpoints)
+        self.gradients = [max(values) - min(values) for values in zip(*self.zones)] if self.t else []
+        for curve, series in zip(self.zone_curves, self.zones):
+            curve.setData(self.t, series)
+        self.setpoint_curve.setData(self.t, self.setpoints)
+        self.gradient_curve.setData(self.t, self.gradients)
+        if target is not None:
+            self.target_line.setValue(target)
+            self.target_line.setVisible(True)
+            if band:
+                self.band.setRegion((target - band, target + band))
+                self.band.setVisible(True)
+        self.temp_plot.enableAutoRange()
+        self.gradient_plot.enableAutoRange()
+
     def add_snapshot(self, snapshot: dict) -> None:
         self.append(
             snapshot["elapsed_sec"],

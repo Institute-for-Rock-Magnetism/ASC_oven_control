@@ -191,6 +191,12 @@ class SetupPage(QWidget):
         self.approach_rate_spin.setValue(round(defaults.approach_rate_fraction * 100))
         self.approach_rate_spin.setSuffix(" % of ramp rate")
         self.soak_band_spin = self._temperature_spin(defaults.soak_band_c, 0.5, 50.0, " °C")
+        self.cap_depth_spin = self._temperature_spin(defaults.max_cap_depth_c, 0.0, 200.0, " °C")
+        self.cap_depth_spin.setToolTip(
+            "How far below the ramp set point a leading zone may be held to keep it with the "
+            "coldest zone. Must be close to the ramp hold band, otherwise the outer zones run "
+            "ahead of Zone 2 (400 C run 12: hold band 45 C with depth 10 C gave a 30 C gradient)."
+        )
         offsets_row = QHBoxLayout()
         self.offset_spins = []
         for index in range(3):
@@ -201,6 +207,7 @@ class SetupPage(QWidget):
         for label, widget in (
             ("Ramp hold band", self.hold_band_spin),
             ("Max zone gradient", self.max_gradient_spin),
+            ("Leader cap depth", self.cap_depth_spin),
             ("Approach band", self.approach_band_spin),
             ("Approach rate", self.approach_rate_spin),
             ("Soak band", self.soak_band_spin),
@@ -284,6 +291,7 @@ class SetupPage(QWidget):
             "approach_band_c": self.approach_band_spin,
             "approach_rate_pct": self.approach_rate_spin,
             "soak_band_c": self.soak_band_spin,
+            "cap_depth_c": self.cap_depth_spin,
             "center_comp_rate": self.comp_rate_spin,
             "center_comp_limit_c": self.comp_limit_spin,
         }
@@ -487,6 +495,7 @@ class SetupPage(QWidget):
             soak_band_c=self.soak_band_spin.value(),
             zone_offsets_c=tuple(spin.value() for spin in self.offset_spins),
             strict_soak=self.strict_soak_check.isChecked(),
+            max_cap_depth_c=self.cap_depth_spin.value(),
             center_comp_rate_per_min=self.comp_rate_spin.value(),
             center_comp_limit_c=self.comp_limit_spin.value(),
         )

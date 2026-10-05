@@ -3,7 +3,9 @@
 Owns the serial port while monitoring. Anything else that needs the port
 (the run engine, Test connection, the tuning page) calls ``suspend()``,
 which blocks until the monitor has closed the port, and ``resume()``
-afterwards. Reads only; the monitor never writes to the controllers.
+afterwards. Reads only, with one safety exception: on connecting it sets
+any zone on PC control still holding a set point (left by a killed run)
+back to its lowest value, because idle must mean heaters off.
 """
 
 from __future__ import annotations
@@ -17,6 +19,7 @@ from PySide6.QtCore import QObject, QThread, Signal
 class _MonitorWorker(QObject):
     reading_ready = Signal(object)
     error = Signal(str)
+    notice = Signal(str)
 
     def __init__(self, backend_factory, poll_seconds: float) -> None:
         super().__init__()
@@ -45,6 +48,12 @@ class _MonitorWorker(QObject):
                     backend = self.backend_factory()
                     backend.connect()
                     self._backend = backend
+                    # Idle means heaters off: clear set points a killed run left behind.
+                    clear = getattr(backend, "clear_leftover_setpoints", None)
+                    if clear is not None:
+                        cleared = clear()
+                        if cleared:
+                            self.notice.emit("No run active: cleared leftover set points on " + ", ".join(cleared))
                 started = time.monotonic()
                 reading = self._backend.read()
                 self.reading_ready.emit(reading)
@@ -72,6 +81,7 @@ class HardwareMonitor(QObject):
 
     reading_ready = Signal(object)
     error = Signal(str)
+    notice = Signal(str)
 
     def __init__(self, backend_factory, poll_seconds: float = 2.0) -> None:
         super().__init__()
@@ -81,6 +91,7 @@ class HardwareMonitor(QObject):
         self._thread.started.connect(self._worker.run)
         self._worker.reading_ready.connect(self.reading_ready)
         self._worker.error.connect(self.error)
+        self._worker.notice.connect(self.notice)
         self._thread.start()
 
     @property

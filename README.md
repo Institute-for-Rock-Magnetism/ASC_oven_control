@@ -28,9 +28,22 @@ The application starts in simulation mode. To drive the oven, open
 **Setup → Instrument connection**, choose *Watlow hardware*, pick the
 serial port (the USB–RS-485 adapter, a Silicon Labs CP210x — COM4 on the
 lab PC), press **Test connection** (read-only) and then **Save
-connection**. Runtime files (configuration and the run database) live in
-the platform application-data directory; set `ASC_OVEN_HOME` to use a
-specific runtime directory.
+connection**. Runtime files (configuration, the run database, logs) live
+in `Documents/ASC Oven Control`; set `ASC_OVEN_HOME` to use a specific
+runtime directory.
+
+**Do not start the app from inside another packaged (MSIX/Store) app such
+as the Claude desktop app.** Windows treats such a program as part of that
+package: it is killed together with the package when the package updates
+(this ended two hardware runs, logged as "Application Hang"), and its
+AppData writes are redirected into the package's private folder. Start it
+from the Desktop shortcut or Start menu. (Data moved out of AppData to
+Documents for the same reason.) After an abnormal end, the app clears any
+set point left in the controllers as soon as it reconnects while idle, and
+marks the unfinished run as "interrupted".
+
+The **Run history** page lists every recorded run from the run logs and
+plots the selected one in full (ramp, hold, cool-down) with a summary.
 
 ## Run logs
 
