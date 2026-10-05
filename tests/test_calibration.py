@@ -99,6 +99,15 @@ class OffsetCalibrationTest(unittest.TestCase):
         self.assertGreater(above[1], 10.0)  # Zone 2 keeps growing: more correction, not less
         self.assertLessEqual(self.cal.expected_excess(2000.0)[1], 2 * 10.0)
 
+    def test_growth_that_slows_down_levels_off_above_the_tested_range(self):
+        # Zone 2 points: 100 -> 5, 200 -> 25/3, 300 -> 10: increments shrink.
+        at_400 = self.cal.expected_excess(400.0)[1]
+        at_600 = self.cal.expected_excess(600.0)[1]
+        at_2000 = self.cal.expected_excess(2000.0)[1]
+        self.assertGreater(at_400, 10.0)
+        self.assertLess(at_400, 10.0 + (10.0 - 25.0 / 3.0))  # less than another full last step
+        self.assertLess(at_2000 - at_600, 0.5)  # levels off
+
     def test_round_trip_and_replace_same_run(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "cal.json"

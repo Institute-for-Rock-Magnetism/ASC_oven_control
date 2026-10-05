@@ -12,9 +12,9 @@ keeps those measurements by target temperature and returns, for any new
 target, the per-zone offsets that should put every zone *on* the target:
 offset = -(expected excess). Zone 2 uses its highest excess plus a small
 margin so its drift ends at, not past, the target. Targets between tested
-temperatures are interpolated linearly; outside them the trend of the
-nearest two points is continued, kept between 0 and twice the largest
-measured excess. Every finished run adds its measurement (the app does
+temperatures are interpolated linearly; above them the measured slowing of
+the growth is continued (geometric series, see ``_extrapolate_up``), kept
+between 0 and twice the largest measured excess. Every finished run adds its measurement (the app does
 this automatically), so the table improves and extends as steps are run.
 """
 
@@ -180,10 +180,10 @@ class OffsetCalibration:
         result = []
         for zone in range(3):
             value = low[1][zone] + fraction * (high[1][zone] - low[1][zone])
-            # Outside the tested range continue the trend of the nearest two
-            # points (the middle zone's excess grows with temperature, so
-            # holding it flat would under-correct and risk overshoot), but
-            # keep it between 0 and twice the largest measured excess.
+            if target_c > points[-1][0]:
+                value = _extrapolate_up(points, zone, target_c, value)
+            # Outside the tested range keep the result between 0 and twice
+            # the largest measured excess.
             measured = [abs(p[1][zone]) for p in points]
             if target_c > points[-1][0] or target_c < points[0][0]:
                 value = min(max(value, 0.0), 2.0 * max(measured))
@@ -201,3 +201,24 @@ class OffsetCalibration:
 
     def tested_targets(self) -> list[float]:
         return [p[0] for p in self._points()]
+
+
+def _extrapolate_up(points, zone: int, target_c: float, linear: float) -> float:
+    """Excess above the tested range.
+
+    Measured on the oven the excess keeps growing with temperature but by
+    less each step (Zone 2: +4.1 C from 100 to 200 C, +1.7 C from 200 to
+    300 C). With three or more tested targets and a shrinking increment,
+    continue that as a geometric series: each further step of the last
+    spacing adds the previous increment times r = last/previous increment,
+    so the excess levels off. Otherwise fall back to the straight line.
+    """
+    if len(points) < 3:
+        return linear
+    (t0, e0), (t1, e1), (t2, e2) = points[-3], points[-2], points[-1]
+    d_prev, d_last = e1[zone] - e0[zone], e2[zone] - e1[zone]
+    if d_prev <= 0 or d_last < 0 or d_last >= d_prev:
+        return linear
+    ratio = d_last / d_prev
+    steps = (target_c - t2) / (t2 - t1)
+    return e2[zone] + d_last * ratio * (1.0 - ratio ** steps) / (1.0 - ratio)
