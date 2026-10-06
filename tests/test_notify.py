@@ -96,6 +96,20 @@ class NotifierTest(unittest.TestCase):
             self.assertIn("sent to Alice", text)
             self.assertNotIn("123456", text)  # API keys never written to the log
 
+    def test_recipient_without_key_is_kept_but_not_sent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "notifications.json"
+            settings(recipients=[Recipient("Pending", "+16125550999", ""), ALICE]).save(path)
+            loaded = NotificationSettings.load(path)
+        self.assertEqual([r.name for r in loaded.recipients], ["Pending", "Alice"])
+        opener = FakeOpener()
+        notifier = Notifier(loaded, opener=opener)
+        notifier.send("x", kind="done")
+        notifier.wait(5)
+        self.assertEqual(len(opener.urls), 1)
+        self.assertIn("no CallMeBot API key yet", Notifier(settings(recipients=[loaded.recipients[0]]),
+                                                         opener=opener).send_blocking("x")[0])
+
     def test_settings_round_trip_keeps_keys_out_of_repo_format(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "notifications.json"
@@ -105,6 +119,103 @@ class NotifierTest(unittest.TestCase):
         self.assertEqual([r.name for r in loaded.recipients], ["Alice", "Bob"])
         self.assertEqual(loaded.cooled_below_c, 45.0)
         self.assertEqual(NotificationSettings.from_dict(loaded.to_dict()).recipients, loaded.recipients)
+
+
+class FakeSMTP:
+    instances = []
+
+    def __init__(self, host, port, timeout, use_ssl):
+        self.host, self.port, self.use_ssl = host, port, use_ssl
+        self.started_tls = False
+        self.login_args = None
+        self.messages = []
+        FakeSMTP.instances.append(self)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def starttls(self, context=None):
+        self.started_tls = True
+
+    def login(self, user, password):
+        self.login_args = (user, password)
+
+    def send_message(self, message):
+        self.messages.append(message)
+
+
+def email_settings(**kw):
+    from asc_oven_control.infrastructure.notify import EmailSettings
+
+    email = EmailSettings(recipients=["yiming-z@umn.edu"], username="lab@gmail.com", sender="lab@gmail.com")
+    email.set_password("abcd efgh ijkl mnop".replace(" ", ""))
+    for key, value in kw.items():
+        setattr(email, key, value)
+    return NotificationSettings(email_enabled=True, email=email)
+
+
+class EmailTest(unittest.TestCase):
+    def setUp(self):
+        FakeSMTP.instances = []
+
+    def test_password_is_stored_encrypted_and_recovered(self):
+        settings = email_settings()
+        self.assertNotIn("abcdefghijklmnop", settings.email.password_protected)
+        self.assertEqual(settings.email.password(), "abcdefghijklmnop")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "notifications.json"
+            settings.save(path)
+            self.assertNotIn("abcdefghijklmnop", path.read_text(encoding="utf-8"))
+            loaded = NotificationSettings.load(path)
+        self.assertEqual(loaded.email.password(), "abcdefghijklmnop")
+        self.assertEqual(NotificationSettings.from_dict(loaded.to_dict()).email.recipients, ["yiming-z@umn.edu"])
+
+    def test_smtp_starttls_login_and_message(self):
+        notifier = Notifier(email_settings(), smtp_factory=FakeSMTP)
+        result = notifier.send_email_blocking("ASC oven: test notice", "hello")
+        self.assertIn("email sent", result)
+        client = FakeSMTP.instances[0]
+        self.assertEqual((client.host, client.port, client.use_ssl), ("smtp.gmail.com", 587, False))
+        self.assertTrue(client.started_tls)
+        self.assertEqual(client.login_args, ("lab@gmail.com", "abcdefghijklmnop"))
+        message = client.messages[0]
+        self.assertEqual(message["To"], "yiming-z@umn.edu")
+        self.assertEqual(message["Subject"], "ASC oven: test notice")
+
+    def test_run_notices_go_to_email_with_a_subject(self):
+        notifier = Notifier(email_settings(), smtp_factory=FakeSMTP)
+        notifier.send("ASC oven run 14 (450 °C): hold complete (20 of 20 min hold).", kind="done")
+        notifier.wait(5)
+        subject = FakeSMTP.instances[0].messages[0]["Subject"]
+        self.assertEqual(subject, "ASC oven: Heating done (ASC oven run 14 (450 °C))")
+
+    def test_email_failure_is_reported_not_raised(self):
+        class Broken(FakeSMTP):
+            def login(self, user, password):
+                raise OSError("535 bad credentials")
+
+        result = Notifier(email_settings(), smtp_factory=Broken).send_email_blocking("s", "t")
+        self.assertIn("failed: 535 bad credentials", result)
+
+    def test_outlook_method_uses_outlook_sender(self):
+        sent = []
+        settings = email_settings(method="outlook")
+        Notifier(settings, outlook_sender=lambda to, s, t, timeout: sent.append((to, s))).send_email_blocking("s", "t")
+        self.assertEqual(sent, [(["yiming-z@umn.edu"], "s")])
+
+    def test_email_and_whatsapp_are_independent(self):
+        opener = FakeOpener()
+        settings = email_settings()
+        settings.enabled = True
+        settings.recipients = [ALICE]
+        notifier = Notifier(settings, opener=opener, smtp_factory=FakeSMTP)
+        notifier.send("x", kind="fault")
+        notifier.wait(5)
+        self.assertEqual(len(opener.urls), 1)
+        self.assertEqual(len(FakeSMTP.instances), 1)
 
 
 if __name__ == "__main__":

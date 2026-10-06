@@ -424,7 +424,10 @@ class MainWindow(QMainWindow):
 
     def _notifications_for_run(self) -> dict | None:
         settings = self.load_notifications()
-        return settings.to_dict() if settings.enabled and settings.recipients else None
+        ready = [r for r in settings.recipients if r.apikey]
+        whatsapp = settings.enabled and ready
+        email = settings.email_enabled and settings.email.configured
+        return settings.to_dict() if whatsapp or email else None
 
     def calibration_path(self) -> Path | None:
         """Learned zone-offset calibration; kept in the repo next to run_logs."""

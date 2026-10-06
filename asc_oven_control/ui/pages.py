@@ -310,9 +310,57 @@ class SetupPage(QWidget):
         card.body.addLayout(form)
         actions = QHBoxLayout()
         actions.addWidget(button("Send test message", "secondary", self._notify_test))
-        actions.addWidget(button("Save notices", "primary", self._notify_save))
         actions.addStretch()
         card.body.addLayout(actions)
+
+        email_title = QLabel("Email notices")
+        email_title.setObjectName("cardTitle")
+        card.body.addWidget(email_title)
+        email_help = QLabel(
+            "Same notices by email. Gmail sender: sign in to the sending account, turn on "
+            "2-Step Verification, create an app password (button below) and paste the 16 "
+            "characters here. The password is stored encrypted for this Windows user (DPAPI). "
+            "Or choose Outlook on this PC (no password here; needs classic Outlook signed in)."
+        )
+        email_help.setObjectName("muted")
+        email_help.setWordWrap(True)
+        card.body.addWidget(email_help)
+        self.email_enabled = QCheckBox("Send email notices")
+        card.body.addWidget(self.email_enabled)
+        email_form = QFormLayout()
+        self.email_to = QLineEdit()
+        self.email_to.setPlaceholderText("name@umn.edu, other@umn.edu")
+        self.email_method = QComboBox()
+        self.email_method.addItem("Gmail / SMTP server", "smtp")
+        self.email_method.addItem("Outlook on this PC", "outlook")
+        self.email_sender = QLineEdit()
+        self.email_sender.setPlaceholderText("berkeleypmaglab@gmail.com")
+        self.email_password = QLineEdit()
+        self.email_password.setEchoMode(QLineEdit.EchoMode.Password)
+        self.email_password.setPlaceholderText("Gmail app password (16 characters)")
+        self.email_host = QLineEdit("smtp.gmail.com")
+        self.email_port = QSpinBox()
+        self.email_port.setRange(1, 65535)
+        self.email_port.setValue(587)
+        self.email_security = QComboBox()
+        for label, value in (("STARTTLS (587)", "starttls"), ("SSL (465)", "ssl"), ("None", "none")):
+            self.email_security.addItem(label, value)
+        email_form.addRow("Send to", self.email_to)
+        email_form.addRow("Send with", self.email_method)
+        email_form.addRow("Sender account", self.email_sender)
+        email_form.addRow("App password", self.email_password)
+        server_row = QHBoxLayout()
+        server_row.addWidget(self.email_host, 1)
+        server_row.addWidget(self.email_port)
+        server_row.addWidget(self.email_security)
+        email_form.addRow("SMTP server", server_row)
+        card.body.addLayout(email_form)
+        email_actions = QHBoxLayout()
+        email_actions.addWidget(button("Sign in / create Gmail app password…", "quiet", self._open_app_password_page))
+        email_actions.addWidget(button("Send test email", "secondary", self._email_test))
+        email_actions.addWidget(button("Save notices", "primary", self._notify_save))
+        email_actions.addStretch()
+        card.body.addLayout(email_actions)
         self.notify_result = QLabel("")
         self.notify_result.setObjectName("muted")
         self.notify_result.setWordWrap(True)
@@ -337,16 +385,31 @@ class SetupPage(QWidget):
         for row in range(self.notify_table.rowCount()):
             cells = [self.notify_table.item(row, c) for c in range(3)]
             name, phone, key = ((c.text().strip() if c else "") for c in cells)
-            if phone and key:
+            if phone:  # the key may be added later
                 recipients.append(Recipient(name or phone, phone.replace(" ", ""), key))
         cooled = self.notify_cooled_spin.value()
-        return NotificationSettings(
+        settings = NotificationSettings(
             enabled=self.notify_enabled.isChecked(),
             recipients=recipients,
             notify_heating_done=self.notify_done.isChecked(),
             notify_faults=self.notify_faults.isChecked(),
             cooled_below_c=cooled if cooled > 0 else None,
+            email_enabled=self.email_enabled.isChecked(),
         )
+        email = settings.email
+        email.recipients = [a.strip() for a in self.email_to.text().replace(";", ",").split(",") if a.strip()]
+        email.method = self.email_method.currentData()
+        email.sender = self.email_sender.text().strip()
+        email.username = email.sender
+        email.smtp_host = self.email_host.text().strip()
+        email.smtp_port = self.email_port.value()
+        email.security = self.email_security.currentData()
+        typed = self.email_password.text().replace(" ", "")
+        # Keep the stored (encrypted) password unless a new one was typed.
+        email.password_protected = self._stored_password if not typed else ""
+        if typed:
+            email.set_password(typed)
+        return settings
 
     def _notify_load(self) -> None:
         settings = self.window.load_notifications()
@@ -357,6 +420,19 @@ class SetupPage(QWidget):
         self.notify_table.setRowCount(0)
         for r in settings.recipients:
             self._notify_add_row(r.name, r.phone, r.apikey)
+        email = settings.email
+        self.email_enabled.setChecked(settings.email_enabled)
+        self.email_to.setText(", ".join(email.recipients))
+        self.email_method.setCurrentIndex(max(self.email_method.findData(email.method), 0))
+        self.email_sender.setText(email.sender or email.username)
+        self.email_host.setText(email.smtp_host)
+        self.email_port.setValue(email.smtp_port)
+        self.email_security.setCurrentIndex(max(self.email_security.findData(email.security), 0))
+        self._stored_password = email.password_protected
+        self.email_password.clear()
+        self.email_password.setPlaceholderText(
+            "saved (encrypted) - type to replace" if email.password_protected else "Gmail app password (16 characters)"
+        )
 
     def _notify_save(self) -> None:
         settings = self.notification_settings()
@@ -365,8 +441,46 @@ class SetupPage(QWidget):
         except OSError as exc:
             self.notify_result.setText(f"Could not save: {exc}")
             return
-        state = "on" if settings.enabled else "off"
-        self.notify_result.setText(f"Saved: notices {state}, {len(settings.recipients)} recipient(s).")
+        self._stored_password = settings.email.password_protected
+        self.email_password.clear()
+        self.email_password.setPlaceholderText(
+            "saved (encrypted) - type to replace" if self._stored_password else "Gmail app password (16 characters)"
+        )
+        whatsapp = "on" if settings.enabled else "off"
+        mail = "on" if settings.email_enabled else "off"
+        self.notify_result.setText(
+            f"Saved: WhatsApp {whatsapp} ({len(settings.recipients)} people), email {mail} "
+            f"({len(settings.email.recipients)} address(es))."
+        )
+
+    def _open_app_password_page(self) -> None:
+        """Google's own sign-in, then its App passwords page (in the default browser)."""
+        import webbrowser
+
+        webbrowser.open("https://myaccount.google.com/apppasswords")
+        self.notify_result.setText(
+            "Opened Google's App passwords page in your browser: sign in as the sender account, "
+            "create an app password named e.g. 'ASC oven', paste it above and press Save notices. "
+            "(If the page says app passwords are unavailable, turn on 2-Step Verification first.)"
+        )
+
+    def _email_test(self) -> None:
+        from asc_oven_control.infrastructure.notify import Notifier
+
+        settings = self.notification_settings()
+        if not settings.email.recipients:
+            self.notify_result.setText("Enter at least one address under 'Send to'.")
+            return
+        if settings.email.method == "smtp" and not settings.email.password_protected:
+            self.notify_result.setText("Paste the sender's app password first.")
+            return
+        self.notify_result.setText("Sending test email…")
+        self.notify_result.repaint()
+        notifier = Notifier(settings, log_path=self.window.notifications_log_path(), timeout_s=20.0)
+        result = notifier.send_email_blocking(
+            "ASC oven: test notice", "Test notice from the ASC oven control app. Email notices are working."
+        )
+        self.notify_result.setText(result + ("" if "sent" in result else "  (nothing is saved until you press Save notices)"))
 
     def _notify_test(self) -> None:
         from asc_oven_control.infrastructure.notify import Notifier
