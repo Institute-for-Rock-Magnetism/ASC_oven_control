@@ -1,5 +1,6 @@
 """WhatsApp (CallMeBot) notices: URL building, delivery, filtering, persistence."""
 
+import json
 import tempfile
 import unittest
 import urllib.parse
@@ -46,7 +47,7 @@ BOB = Recipient("Bob", "+16125550456", "654321")
 
 
 def settings(**kw):
-    values = dict(enabled=True, recipients=[ALICE, BOB])
+    values = dict(enabled=True, recipients=[ALICE, BOB], whatsapp_provider="callmebot")
     values.update(kw)
     return NotificationSettings(**values)
 
@@ -210,12 +211,83 @@ class EmailTest(unittest.TestCase):
         opener = FakeOpener()
         settings = email_settings()
         settings.enabled = True
+        settings.whatsapp_provider = "callmebot"
         settings.recipients = [ALICE]
         notifier = Notifier(settings, opener=opener, smtp_factory=FakeSMTP)
         notifier.send("x", kind="fault")
         notifier.wait(5)
         self.assertEqual(len(opener.urls), 1)
         self.assertEqual(len(FakeSMTP.instances), 1)
+
+
+class JsonResponse(FakeResponse):
+    def __init__(self, body):
+        super().__init__(200, json.dumps(body).encode("utf-8"))
+
+
+def cloud_settings(**kw):
+    from asc_oven_control.infrastructure.notify import CloudApiSettings
+
+    cloud = CloudApiSettings(phone_number_id="123456789012345")
+    cloud.set_token("EAAtoken-secret")
+    values = dict(enabled=True, recipients=[Recipient("Yiming", "+1 612 555 0123", "")],
+                  whatsapp_provider="cloud", cloud=cloud)
+    values.update(kw)
+    return NotificationSettings(**values)
+
+
+class CloudApiTest(unittest.TestCase):
+    def test_template_request_with_bearer_token(self):
+        opener = FakeOpener([JsonResponse({"messages": [{"id": "wamid.X"}]})])
+        notifier = Notifier(cloud_settings(), opener=opener)
+        notifier.send("ASC oven run 14 (450 °C): hold complete.\nFan can go off.", kind="done")
+        notifier.wait(5)
+        request = opener.urls[0]
+        self.assertEqual(request.full_url, "https://graph.facebook.com/v23.0/123456789012345/messages")
+        self.assertEqual(request.get_method(), "POST")
+        self.assertEqual(request.get_header("Authorization"), "Bearer EAAtoken-secret")
+        body = json.loads(request.data)
+        self.assertEqual(body["to"], "16125550123")
+        self.assertEqual(body["template"]["name"], "asc_oven_notice")
+        text = body["template"]["components"][0]["parameters"][0]["text"]
+        self.assertNotIn("\n", text)
+        self.assertIn("hold complete", text)
+
+    def test_hello_world_test_and_token_never_logged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / "notifications.log"
+            opener = FakeOpener([JsonResponse({"messages": [{"id": "wamid.X"}]})])
+            lines = Notifier(cloud_settings(), log_path=log, opener=opener).send_blocking("x", test=True)
+            self.assertIn("sent to Yiming", lines[0])
+            self.assertIn("via WhatsApp Cloud API", lines[0])
+            self.assertEqual(json.loads(opener.urls[0].data)["template"], {"name": "hello_world", "language": {"code": "en_US"}})
+            self.assertNotIn("EAAtoken-secret", log.read_text(encoding="utf-8"))
+
+    def test_http_error_is_reported_without_retry(self):
+        import io
+        import urllib.error
+
+        error = urllib.error.HTTPError("u", 400, "Bad", {}, io.BytesIO(json.dumps(
+            {"error": {"message": "Recipient not in allowed list", "code": 131030}}).encode()))
+        opener = FakeOpener([error])
+        lines = Notifier(cloud_settings(), opener=opener, retries=2).send_blocking("x")
+        self.assertEqual(len(opener.urls), 1)
+        self.assertIn("HTTP 400: Recipient not in allowed list (code 131030)", lines[0])
+
+    def test_unconfigured_cloud_sends_nothing_and_token_is_encrypted_on_disk(self):
+        opener = FakeOpener()
+        notifier = Notifier(cloud_settings(cloud=__import__(
+            "asc_oven_control.infrastructure.notify", fromlist=["CloudApiSettings"]).CloudApiSettings()), opener=opener)
+        notifier.send("x", kind="done")
+        self.assertEqual(opener.urls, [])
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "notifications.json"
+            cloud_settings().save(path)
+            self.assertNotIn("EAAtoken-secret", path.read_text(encoding="utf-8"))
+            loaded = NotificationSettings.load(path)
+        self.assertEqual(loaded.whatsapp_provider, "cloud")
+        self.assertEqual(loaded.cloud.token(), "EAAtoken-secret")
+        self.assertEqual(loaded.cloud.phone_number_id, "123456789012345")
 
 
 if __name__ == "__main__":

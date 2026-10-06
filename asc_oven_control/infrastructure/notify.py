@@ -24,6 +24,7 @@ import json
 import os
 import threading
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import asdict, dataclass, field
@@ -123,9 +124,38 @@ class EmailSettings:
 
 
 @dataclass(slots=True)
+class CloudApiSettings:
+    """WhatsApp Cloud API (Meta, official): delivery in seconds.
+
+    Business-initiated messages must use an approved template; the app uses
+    a template with one body variable that carries the notice text (e.g.
+    name ``asc_oven_notice``, body "ASC oven notice: {{1}}"). Without a
+    template name it sends Meta's built-in ``hello_world`` (connection test).
+    """
+
+    phone_number_id: str = ""
+    token_protected: str = ""  # DPAPI-encrypted access token
+    api_version: str = "v23.0"
+    template_name: str = "asc_oven_notice"
+    template_language: str = "en_US"
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.phone_number_id and self.token_protected)
+
+    def set_token(self, token: str) -> None:
+        self.token_protected = protect_secret(token)
+
+    def token(self) -> str:
+        return reveal_secret(self.token_protected)
+
+
+@dataclass(slots=True)
 class NotificationSettings:
     enabled: bool = False
     recipients: list[Recipient] = field(default_factory=list)
+    whatsapp_provider: str = "cloud"  # "cloud" (Meta Cloud API) or "callmebot"
+    cloud: CloudApiSettings = field(default_factory=CloudApiSettings)
     notify_heating_done: bool = True
     notify_faults: bool = True
     cooled_below_c: float | None = 50.0  # None: no "cooled" notice
@@ -144,8 +174,9 @@ class NotificationSettings:
         path.parent.mkdir(parents=True, exist_ok=True)
         data = asdict(self)
         data["about"] = (
-            f"WhatsApp notices via CallMeBot (each person adds {BOT_NUMBER} and sends "
-            f"'{ACTIVATION_TEXT}' to get their own API key) and email (SMTP password stored "
+            "WhatsApp notices via the official WhatsApp Cloud API (Meta; access token stored "
+            f"DPAPI-encrypted) or CallMeBot (each person adds {BOT_NUMBER} and sends "
+            f"'{ACTIVATION_TEXT}' to get their own API key), and email (SMTP password stored "
             "DPAPI-encrypted for this Windows user, or classic Outlook on this PC)."
         )
         path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
@@ -168,6 +199,15 @@ class NotificationSettings:
         settings.notify_heating_done = bool(data.get("notify_heating_done", True))
         settings.notify_faults = bool(data.get("notify_faults", True))
         settings.cooled_below_c = data.get("cooled_below_c", 50.0)
+        settings.whatsapp_provider = str(data.get("whatsapp_provider", "cloud"))
+        cloud = data.get("cloud") or {}
+        settings.cloud = CloudApiSettings(
+            phone_number_id=str(cloud.get("phone_number_id", "")).strip(),
+            token_protected=str(cloud.get("token_protected", "")),
+            api_version=str(cloud.get("api_version", "v23.0")),
+            template_name=str(cloud.get("template_name", "asc_oven_notice")),
+            template_language=str(cloud.get("template_language", "en_US")),
+        )
         settings.email_enabled = bool(data.get("email_enabled", False))
         email = data.get("email") or {}
         settings.email = EmailSettings(
@@ -219,6 +259,36 @@ def send_with_outlook(recipients: list[str], subject: str, text: str, timeout_s:
         raise OSError((done.stderr or done.stdout or "Outlook send failed").strip().splitlines()[-1][:200])
 
 
+def cloud_url(cloud: CloudApiSettings) -> str:
+    return f"https://graph.facebook.com/{cloud.api_version}/{cloud.phone_number_id}/messages"
+
+
+def cloud_payload(cloud: CloudApiSettings, phone: str, text: str, hello_world: bool = False) -> dict:
+    """Template message (business-initiated): the notice travels as body variable {{1}}."""
+    to = "".join(ch for ch in phone if ch.isdigit())
+    if hello_world or not cloud.template_name:
+        template = {"name": "hello_world", "language": {"code": "en_US"}}
+    else:
+        # Template variables may not contain newlines, tabs or >4 spaces in a row.
+        flat = " ".join(text.split())[:1000]
+        template = {
+            "name": cloud.template_name,
+            "language": {"code": cloud.template_language},
+            "components": [{"type": "body", "parameters": [{"type": "text", "text": flat}]}],
+        }
+    return {"messaging_product": "whatsapp", "recipient_type": "individual", "to": to,
+            "type": "template", "template": template}
+
+
+def cloud_error(exc) -> str:
+    try:
+        error = json.loads(exc.read().decode("utf-8", "replace")).get("error", {})
+        detail = error.get("error_data", {}).get("details") or error.get("message", "")
+        return f"HTTP {exc.code}: {detail} (code {error.get('code')})"[:300]
+    except Exception:  # noqa: BLE001
+        return f"HTTP {exc.code}"
+
+
 def build_url(recipient: Recipient, text: str) -> str:
     query = urllib.parse.urlencode(
         {"phone": recipient.phone, "text": text[:MAX_TEXT], "apikey": recipient.apikey},
@@ -244,6 +314,10 @@ class Notifier:
         self.threads: list[threading.Thread] = []
 
     def ready_recipients(self) -> list[Recipient]:
+        if self.settings.whatsapp_provider == "cloud":
+            if not self.settings.cloud.configured:
+                return []
+            return [r for r in self.settings.recipients if r.phone]
         return [r for r in self.settings.recipients if r.phone and r.apikey]
 
     @property
@@ -278,8 +352,16 @@ class Notifier:
             thread.start()
             self.threads.append(thread)
 
-    def send_blocking(self, text: str) -> list[str]:
-        """Deliver now on WhatsApp (Test button); one result line per recipient."""
+    def send_blocking(self, text: str, test: bool = False) -> list[str]:
+        """Deliver now on WhatsApp (Test button); one result line per recipient.
+
+        ``test`` with the Cloud API sends Meta's built-in hello_world template,
+        which works before the app's own template is approved.
+        """
+        if self.settings.whatsapp_provider == "cloud":
+            if not self.settings.cloud.configured:
+                return ["WhatsApp Cloud API: enter the phone number ID and access token first"]
+            return [self._deliver(r, text, hello_world=test) for r in self.settings.recipients if r.phone]
         return [
             self._deliver(r, text) if r.apikey else f"skipped {r.masked()}: no CallMeBot API key yet"
             for r in self.settings.recipients
@@ -290,6 +372,36 @@ class Notifier:
         if not self.settings.email.recipients:
             return "no email recipients"
         return self._deliver_email(subject, text, retries=0)
+
+    # ------------------------------------------------------- WhatsApp Cloud API
+
+    def _deliver_cloud(self, recipient: Recipient, text: str, hello_world: bool = False) -> str:
+        cloud = self.settings.cloud
+        request = urllib.request.Request(
+            cloud_url(cloud),
+            data=json.dumps(cloud_payload(cloud, recipient.phone, text, hello_world)).encode("utf-8"),
+            headers={"Authorization": f"Bearer {cloud.token()}", "Content-Type": "application/json"},
+            method="POST",
+        )
+        result = ""
+        for attempt in range(self.retries + 1):
+            try:
+                with self.opener(request, timeout=self.timeout_s) as response:
+                    body = json.loads(response.read(4000).decode("utf-8", "replace") or "{}")
+                if body.get("messages"):
+                    result = f"sent to {recipient.masked()} via WhatsApp Cloud API"
+                    break
+                result = f"failed for {recipient.masked()}: unexpected reply {str(body)[:160]}"
+            except urllib.error.HTTPError as exc:
+                result = f"failed for {recipient.masked()}: {cloud_error(exc)}"
+                if exc.code in (400, 401, 403, 404):
+                    break  # configuration problem: retrying will not help
+            except Exception as exc:  # noqa: BLE001 - never let a notice break a run
+                result = f"failed for {recipient.masked()}: {exc}"
+            if attempt < self.retries:
+                time.sleep(min(5.0 * (attempt + 1), 15.0))
+        self._log(f"{result} | {text[:160]!r}")
+        return result
 
     # ----------------------------------------------------------------- email
 
@@ -342,7 +454,9 @@ class Notifier:
         for thread in self.threads:
             thread.join(max(deadline - time.monotonic(), 0.0))
 
-    def _deliver(self, recipient: Recipient, text: str) -> str:
+    def _deliver(self, recipient: Recipient, text: str, hello_world: bool = False) -> str:
+        if self.settings.whatsapp_provider == "cloud":
+            return self._deliver_cloud(recipient, text, hello_world)
         url = build_url(recipient, text)
         result = ""
         for attempt in range(self.retries + 1):

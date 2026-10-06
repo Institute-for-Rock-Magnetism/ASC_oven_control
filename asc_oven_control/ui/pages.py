@@ -279,16 +279,39 @@ class SetupPage(QWidget):
 
         card = Card(
             "WhatsApp notices",
-            f"Sent by the run itself (even if this window is closed) when the heating ends, when "
-            f"the oven has cooled below the set temperature (fan reminder), and on faults. Each "
-            f"person adds {BOT_NUMBER} in WhatsApp and sends “{ACTIVATION_TEXT}”; CallMeBot "
-            f"replies with a personal API key. Free personal-use service: one message per person, "
-            f"no groups.",
+            "Sent by the run itself (even if this window is closed) when the heating ends, when "
+            "the oven has cooled below the set temperature (fan reminder), and on faults. "
+            "WhatsApp Cloud API (official Meta, arrives in seconds): enter the Phone number ID and "
+            "access token from developers.facebook.com → your app → WhatsApp → API Setup; the "
+            "token is stored encrypted for this Windows user. Notices use an approved template "
+            "with one variable, body e.g. “ASC oven notice: {{1}}”. "
+            f"CallMeBot (free, can be slow): each person sends “{ACTIVATION_TEXT}” to {BOT_NUMBER}.",
         )
         self.notify_enabled = QCheckBox("Send WhatsApp notices")
         card.body.addWidget(self.notify_enabled)
+        cloud_form = QFormLayout()
+        self.notify_provider = QComboBox()
+        self.notify_provider.addItem("WhatsApp Cloud API (Meta)", "cloud")
+        self.notify_provider.addItem("CallMeBot", "callmebot")
+        self.cloud_phone_id = QLineEdit()
+        self.cloud_phone_id.setPlaceholderText("Phone number ID (15-16 digits, not the phone number)")
+        self.cloud_token = QLineEdit()
+        self.cloud_token.setEchoMode(QLineEdit.EchoMode.Password)
+        self.cloud_token.setPlaceholderText("Access token (permanent system user token)")
+        self.cloud_template = QLineEdit("asc_oven_notice")
+        self.cloud_template.setToolTip("Approved template name with one body variable {{1}}")
+        self.cloud_language = QLineEdit("en_US")
+        self.cloud_language.setMaximumWidth(90)
+        template_row = QHBoxLayout()
+        template_row.addWidget(self.cloud_template, 1)
+        template_row.addWidget(self.cloud_language)
+        cloud_form.addRow("Send with", self.notify_provider)
+        cloud_form.addRow("Phone number ID", self.cloud_phone_id)
+        cloud_form.addRow("Access token", self.cloud_token)
+        cloud_form.addRow("Template", template_row)
+        card.body.addLayout(cloud_form)
         self.notify_table = QTableWidget(0, 3)
-        self.notify_table.setHorizontalHeaderLabels(("Name", "Phone (+country code)", "CallMeBot API key"))
+        self.notify_table.setHorizontalHeaderLabels(("Name", "Phone (+country code)", "CallMeBot API key (CallMeBot only)"))
         self.notify_table.verticalHeader().setVisible(False)
         self.notify_table.horizontalHeader().setStretchLastSection(True)
         self.notify_table.setMinimumHeight(110)
@@ -309,7 +332,9 @@ class SetupPage(QWidget):
         form.addRow("Cooled below", self.notify_cooled_spin)
         card.body.addLayout(form)
         actions = QHBoxLayout()
-        actions.addWidget(button("Send test message", "secondary", self._notify_test))
+        actions.addWidget(button("Open Meta API Setup…", "quiet", self._open_meta_setup))
+        actions.addWidget(button("Send test (hello_world)", "secondary", lambda: self._notify_test(True)))
+        actions.addWidget(button("Send test notice", "secondary", lambda: self._notify_test(False)))
         actions.addStretch()
         card.body.addLayout(actions)
 
@@ -395,7 +420,17 @@ class SetupPage(QWidget):
             notify_faults=self.notify_faults.isChecked(),
             cooled_below_c=cooled if cooled > 0 else None,
             email_enabled=self.email_enabled.isChecked(),
+            whatsapp_provider=self.notify_provider.currentData(),
         )
+        cloud = settings.cloud
+        cloud.phone_number_id = self.cloud_phone_id.text().strip()
+        cloud.api_version = self._cloud_api_version
+        cloud.template_name = self.cloud_template.text().strip()
+        cloud.template_language = self.cloud_language.text().strip() or "en_US"
+        typed_token = "".join(self.cloud_token.text().split())
+        cloud.token_protected = self._stored_token if not typed_token else ""
+        if typed_token:
+            cloud.set_token(typed_token)
         email = settings.email
         email.recipients = [a.strip() for a in self.email_to.text().replace(";", ",").split(",") if a.strip()]
         email.method = self.email_method.currentData()
@@ -420,6 +455,14 @@ class SetupPage(QWidget):
         self.notify_table.setRowCount(0)
         for r in settings.recipients:
             self._notify_add_row(r.name, r.phone, r.apikey)
+        cloud = settings.cloud
+        self.notify_provider.setCurrentIndex(max(self.notify_provider.findData(settings.whatsapp_provider), 0))
+        self.cloud_phone_id.setText(cloud.phone_number_id)
+        self.cloud_template.setText(cloud.template_name)
+        self.cloud_language.setText(cloud.template_language)
+        self._cloud_api_version = cloud.api_version
+        self._stored_token = cloud.token_protected
+        self._show_token_state()
         email = settings.email
         self.email_enabled.setChecked(settings.email_enabled)
         self.email_to.setText(", ".join(email.recipients))
@@ -446,11 +489,30 @@ class SetupPage(QWidget):
         self.email_password.setPlaceholderText(
             "saved (encrypted) - type to replace" if self._stored_password else "Gmail app password (16 characters)"
         )
+        self._stored_token = settings.cloud.token_protected
+        self._show_token_state()
         whatsapp = "on" if settings.enabled else "off"
         mail = "on" if settings.email_enabled else "off"
         self.notify_result.setText(
             f"Saved: WhatsApp {whatsapp} ({len(settings.recipients)} people), email {mail} "
             f"({len(settings.email.recipients)} address(es))."
+        )
+
+    def _show_token_state(self) -> None:
+        self.cloud_token.clear()
+        self.cloud_token.setPlaceholderText(
+            "saved (encrypted) - type to replace" if self._stored_token
+            else "Access token (permanent system user token)"
+        )
+
+    def _open_meta_setup(self) -> None:
+        import webbrowser
+
+        webbrowser.open("https://developers.facebook.com/apps/")
+        self.notify_result.setText(
+            "Opened Meta for Developers: open (or create) the app with the WhatsApp product, go to "
+            "WhatsApp → API Setup, copy the Phone number ID, add each recipient number under 'To' and "
+            "verify it, then paste the access token above and press Save notices."
         )
 
     def _open_app_password_page(self) -> None:
@@ -482,17 +544,19 @@ class SetupPage(QWidget):
         )
         self.notify_result.setText(result + ("" if "sent" in result else "  (nothing is saved until you press Save notices)"))
 
-    def _notify_test(self) -> None:
+    def _notify_test(self, hello_world: bool = False) -> None:
         from asc_oven_control.infrastructure.notify import Notifier
 
         settings = self.notification_settings()
         if not settings.recipients:
-            self.notify_result.setText("Add at least one person with phone and API key first.")
+            self.notify_result.setText("Add at least one person with a phone number first.")
             return
         self.notify_result.setText("Sending…")
         self.notify_result.repaint()
         notifier = Notifier(settings, log_path=self.window.notifications_log_path(), retries=0, timeout_s=15.0)
-        lines = notifier.send_blocking("ASC oven: test notice from the oven control app. Notices are working.")
+        lines = notifier.send_blocking(
+            "Test notice from the oven control app. Notices are working.", test=hello_world
+        )
         self.notify_result.setText("\n".join(lines))
 
     # ------------------------------------------------------------ form state
