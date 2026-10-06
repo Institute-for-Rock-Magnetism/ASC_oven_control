@@ -253,6 +253,7 @@ class SetupPage(QWidget):
         gradient_form.addRow("Middle-zone comp.", comp_row)
         gradient.body.addLayout(gradient_form)
         grid.addWidget(gradient, 3, 0)
+        grid.addWidget(self._build_notifications_card(), 4, 0, 1, 2)
         self.load_form_state()
         self.update_auto_offsets()
 
@@ -270,6 +271,115 @@ class SetupPage(QWidget):
         spin.setValue(value)
         spin.setSuffix(suffix)
         return spin
+
+    # --------------------------------------------------------- notifications
+
+    def _build_notifications_card(self) -> QWidget:
+        from asc_oven_control.infrastructure.notify import ACTIVATION_TEXT, BOT_NUMBER
+
+        card = Card(
+            "WhatsApp notices",
+            f"Sent by the run itself (even if this window is closed) when the heating ends, when "
+            f"the oven has cooled below the set temperature (fan reminder), and on faults. Each "
+            f"person adds {BOT_NUMBER} in WhatsApp and sends “{ACTIVATION_TEXT}”; CallMeBot "
+            f"replies with a personal API key. Free personal-use service: one message per person, "
+            f"no groups.",
+        )
+        self.notify_enabled = QCheckBox("Send WhatsApp notices")
+        card.body.addWidget(self.notify_enabled)
+        self.notify_table = QTableWidget(0, 3)
+        self.notify_table.setHorizontalHeaderLabels(("Name", "Phone (+country code)", "CallMeBot API key"))
+        self.notify_table.verticalHeader().setVisible(False)
+        self.notify_table.horizontalHeader().setStretchLastSection(True)
+        self.notify_table.setMinimumHeight(110)
+        card.body.addWidget(self.notify_table)
+        rows = QHBoxLayout()
+        rows.addWidget(button("Add person", "quiet", self._notify_add_row))
+        rows.addWidget(button("Remove selected", "quiet", self._notify_remove_row))
+        rows.addStretch()
+        card.body.addLayout(rows)
+        form = QFormLayout()
+        self.notify_done = QCheckBox("Heating done (heaters off, fan reminder)")
+        self.notify_faults = QCheckBox("Faults (trip, controllers lost, run stopped)")
+        self.notify_cooled_spin = self._temperature_spin(50.0, 0.0, 400.0, " °C")
+        self.notify_cooled_spin.setSpecialValueText("off")
+        self.notify_cooled_spin.setToolTip("Send a notice once the hottest zone is below this during the cool-down (0 = off)")
+        form.addRow("", self.notify_done)
+        form.addRow("", self.notify_faults)
+        form.addRow("Cooled below", self.notify_cooled_spin)
+        card.body.addLayout(form)
+        actions = QHBoxLayout()
+        actions.addWidget(button("Send test message", "secondary", self._notify_test))
+        actions.addWidget(button("Save notices", "primary", self._notify_save))
+        actions.addStretch()
+        card.body.addLayout(actions)
+        self.notify_result = QLabel("")
+        self.notify_result.setObjectName("muted")
+        self.notify_result.setWordWrap(True)
+        card.body.addWidget(self.notify_result)
+        self._notify_load()
+        return card
+
+    def _notify_add_row(self, name: str = "", phone: str = "", key: str = "") -> None:
+        row = self.notify_table.rowCount()
+        self.notify_table.insertRow(row)
+        for column, value in enumerate((name, phone, key)):
+            self.notify_table.setItem(row, column, QTableWidgetItem(value))
+
+    def _notify_remove_row(self) -> None:
+        for index in sorted({i.row() for i in self.notify_table.selectedIndexes()}, reverse=True):
+            self.notify_table.removeRow(index)
+
+    def notification_settings(self):
+        from asc_oven_control.infrastructure.notify import NotificationSettings, Recipient
+
+        recipients = []
+        for row in range(self.notify_table.rowCount()):
+            cells = [self.notify_table.item(row, c) for c in range(3)]
+            name, phone, key = ((c.text().strip() if c else "") for c in cells)
+            if phone and key:
+                recipients.append(Recipient(name or phone, phone.replace(" ", ""), key))
+        cooled = self.notify_cooled_spin.value()
+        return NotificationSettings(
+            enabled=self.notify_enabled.isChecked(),
+            recipients=recipients,
+            notify_heating_done=self.notify_done.isChecked(),
+            notify_faults=self.notify_faults.isChecked(),
+            cooled_below_c=cooled if cooled > 0 else None,
+        )
+
+    def _notify_load(self) -> None:
+        settings = self.window.load_notifications()
+        self.notify_enabled.setChecked(settings.enabled)
+        self.notify_done.setChecked(settings.notify_heating_done)
+        self.notify_faults.setChecked(settings.notify_faults)
+        self.notify_cooled_spin.setValue(settings.cooled_below_c or 0.0)
+        self.notify_table.setRowCount(0)
+        for r in settings.recipients:
+            self._notify_add_row(r.name, r.phone, r.apikey)
+
+    def _notify_save(self) -> None:
+        settings = self.notification_settings()
+        try:
+            self.window.save_notifications(settings)
+        except OSError as exc:
+            self.notify_result.setText(f"Could not save: {exc}")
+            return
+        state = "on" if settings.enabled else "off"
+        self.notify_result.setText(f"Saved: notices {state}, {len(settings.recipients)} recipient(s).")
+
+    def _notify_test(self) -> None:
+        from asc_oven_control.infrastructure.notify import Notifier
+
+        settings = self.notification_settings()
+        if not settings.recipients:
+            self.notify_result.setText("Add at least one person with phone and API key first.")
+            return
+        self.notify_result.setText("Sending…")
+        self.notify_result.repaint()
+        notifier = Notifier(settings, log_path=self.window.notifications_log_path(), retries=0, timeout_s=15.0)
+        lines = notifier.send_blocking("ASC oven: test notice from the oven control app. Notices are working.")
+        self.notify_result.setText("\n".join(lines))
 
     # ------------------------------------------------------------ form state
 

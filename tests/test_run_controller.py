@@ -157,6 +157,47 @@ class RunControllerTest(unittest.TestCase):
         status = self.logger.conn.execute("SELECT status FROM runs WHERE id = ?", (run_id,)).fetchone()[0]
         self.assertEqual(status, "timed out")
 
+    def test_notices_for_heating_done_and_cooled(self):
+        class RecordingNotifier:
+            def __init__(self):
+                from asc_oven_control.infrastructure.notify import NotificationSettings
+
+                # Above the hold temperature, so the "cooled" notice is due at the
+                # first cooling sample (the simulated middle zone keeps warming
+                # for a while after the heaters go off, like the real oven).
+                self.settings = NotificationSettings(enabled=True, cooled_below_c=45.0)
+                self.sent = []
+
+            def send(self, text, kind="info"):
+                self.sent.append((kind, text))
+
+        notifier = RecordingNotifier()
+        controller, _, _ = self.make(profile(target=40.0), cooling_ticks=400)
+        controller.notifier = notifier
+        controller.run()
+        kinds = [k for k, _ in notifier.sent]
+        self.assertEqual(kinds[0], "done")
+        self.assertIn("hold complete", notifier.sent[0][1])
+        self.assertIn("cooled", kinds)
+        self.assertEqual(kinds.count("cooled"), 1)
+
+    def test_trip_sends_a_fault_notice(self):
+        class RecordingNotifier:
+            settings = None
+
+            def __init__(self):
+                self.sent = []
+
+            def send(self, text, kind="info"):
+                self.sent.append((kind, text))
+
+        notifier = RecordingNotifier()
+        controller, _, _ = self.make(profile(target=300.0, alarm_high=30.0))
+        controller.notifier = notifier
+        controller.run()
+        self.assertEqual(notifier.sent[0][0], "fault")
+        self.assertIn("Over-temperature trip", notifier.sent[0][1])
+
     def test_settings_round_trip(self):
         s = GradientSettings(zone_offsets_c=(-8.0, 0.0, -8.0), max_gradient_c=5.0)
         self.assertEqual(settings_from_dict(settings_to_dict(s)), s)

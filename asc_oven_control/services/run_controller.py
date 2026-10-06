@@ -140,7 +140,11 @@ class RunController:
         stop_requested=lambda: False,
         csv_log: LiveCsvLog | None = None,
         time_scale: float = 1.0,
+        notifier=None,
     ) -> None:
+        self.notifier = notifier
+        self.last_zones: tuple[float, float, float] | None = None
+        self.cooled_notified = False
         self.profile = profile
         self.run_id = run_id
         self.logger = logger
@@ -217,6 +221,7 @@ class RunController:
             self.backend.connect()
         except Exception as exc:  # noqa: BLE001
             self.emit("failed", f"cannot connect: {exc}")
+            self._notify("fault", f"ALERT {self._label()} could not start: cannot reach the controllers ({exc}).")
             return "Failed"
         outcome = "Failed"
         try:
@@ -235,6 +240,9 @@ class RunController:
         except Exception as exc:  # noqa: BLE001 - report and finish
             self.emit("failed", str(exc))
             outcome = "Failed"
+            if not self.cooling:
+                self._notify("fault", f"ALERT {self._label()} stopped while heating: {exc}. The app tried to turn the "
+                                      "heaters off; if the controllers are not responding, switch the heater off.")
         status = {"Complete": "complete"}.get(outcome, outcome.lower())
         self.logger.finish_run(self.run_id, status=status)
         return outcome
@@ -254,6 +262,28 @@ class RunController:
         self.phase = OvenPhase.COOLING
         self.detail_phase = str(OvenPhase.COOLING)
         self.emit("state", str(OvenPhase.COOLING), message + " — heaters off, recording the cool-down until Stop")
+        zones = "/".join(f"{z:.0f}" for z in self.last_zones) if self.last_zones else "?"
+        hold = f"{self.coordinator.soak_elapsed_s / 60:.0f} of {self.profile.soak_time_sec / 60:.0f} min hold"
+        if outcome == "Tripped":
+            self._notify("fault", f"ALERT {self._label()}: {message}. Heaters off. Zones {zones} °C. Check the oven.")
+        elif outcome == "Timed out":
+            self._notify("done", f"{self._label()}: heating ended at the max run time ({hold}). Heaters off, "
+                                 f"zones {zones} °C, cooling. Turn the fan off when it is cool.")
+        else:
+            self._notify("done", f"{self._label()}: hold complete ({hold}) at {time.strftime('%H:%M')}. Heaters off, "
+                                 f"zones {zones} °C, cooling. Turn the fan off when it is cool.")
+
+    def _label(self) -> str:
+        batch = f", {self.profile.batch_id}" if self.profile.batch_id else ""
+        sample = f" {self.profile.sample_id}" if self.profile.sample_id else ""
+        return f"ASC oven run {self.run_id} ({self.profile.target_setpoint_c:g} °C{batch}{sample})"
+
+    def _notify(self, kind: str, text: str) -> None:
+        if self.notifier is not None:
+            try:
+                self.notifier.send(text, kind=kind)
+            except Exception:  # noqa: BLE001 - a notice must never affect the run
+                pass
 
     def _loop(self) -> str:
         last = time.monotonic()
@@ -285,6 +315,13 @@ class RunController:
         try:
             self._tick(last, advance_control=False)
             self.cooling_failures = 0
+            threshold = getattr(getattr(self.notifier, "settings", None), "cooled_below_c", None)
+            if threshold is not None and not self.cooled_notified and self.last_zones:
+                if max(self.last_zones) < float(threshold):
+                    self.cooled_notified = True
+                    zones = "/".join(f"{z:.0f}" for z in self.last_zones)
+                    self._notify("cooled", f"{self._label()}: oven cooled below {float(threshold):g} °C "
+                                           f"(zones {zones} °C) at {time.strftime('%H:%M')}. The fan can be switched off.")
         except CommunicationError as exc:
             self.cooling_failures += 1
             if self.cooling_failures >= 3:
@@ -307,6 +344,7 @@ class RunController:
             self.phase = _PHASES[decision.phase]
         master = self.coordinator.master_c if self.coordinator.master_c is not None else reading.zones_c[0]
         zones = reading.zones_c
+        self.last_zones = zones
         alarm = evaluate_alarm(zones, self.profile.alarm_high_c, self.profile.alarm_low_c)
         if not alarm and reading.alarms:
             alarm = reading.alarms[0]
@@ -416,6 +454,14 @@ def run_service(job: dict, commands, events) -> None:
         encoding="utf-8",
     )
     outcome = "Failed"
+    notifier = None
+    if job.get("notifications"):
+        from asc_oven_control.infrastructure.notify import NotificationSettings, Notifier
+
+        notifier = Notifier(
+            NotificationSettings.from_dict(job["notifications"]),
+            log_path=control_dir.parent / "logs" / "notifications.log",
+        )
     try:
         controller = RunController(
             profile=RunProfile.from_dict(job["profile"]),
@@ -429,11 +475,14 @@ def run_service(job: dict, commands, events) -> None:
             stop_requested=stop_path.exists,
             csv_log=csv_log,
             time_scale=float(job.get("time_scale", 1.0)),
+            notifier=notifier,
         )
         outcome = controller.run()
     except Exception as exc:  # noqa: BLE001
         emit("failed", str(exc))
     finally:
+        if notifier is not None:
+            notifier.wait(60.0)  # let pending WhatsApp notices go out before exiting
         csv_log.close()
         logger.close()
         for path in (marker, stop_path):

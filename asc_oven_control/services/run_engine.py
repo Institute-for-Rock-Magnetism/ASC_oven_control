@@ -63,6 +63,7 @@ class RunEngine(QObject):
         self.simulation_time_scale = simulation_time_scale
         self.control_dir = Path(control_dir) if control_dir is not None else Path(logger.path).parent / "control"
         self.settings = GradientSettings()
+        self.notifications_provider = None  # () -> dict for the run process, or None
         self.state = "Idle"
         self.profile: Optional[RunProfile] = None
         self.run_id: Optional[int] = None
@@ -121,6 +122,7 @@ class RunEngine(QObject):
             "control_dir": str(self.control_dir),
             "poll_seconds": poll,
             "time_scale": 1.0 if hardware else self.simulation_time_scale,
+            "notifications": self.notifications_provider() if self.notifications_provider else None,
         }
         context = multiprocessing.get_context("spawn")
         self._commands = context.Queue()

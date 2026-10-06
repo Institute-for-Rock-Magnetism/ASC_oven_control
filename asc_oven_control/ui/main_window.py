@@ -78,8 +78,11 @@ class MainWindow(QMainWindow):
         self.monitor.notice.connect(self._on_monitor_notice)
 
         self._update_mode_labels()
+        self.engine.notifications_provider = self._notifications_for_run
         info = self.engine.attach()
-        self.logger.mark_interrupted(keep_run_id=int(info["run_id"]) if info is not None else None)
+        interrupted = self.logger.mark_interrupted(keep_run_id=int(info["run_id"]) if info is not None else None)
+        if interrupted:
+            self._notify_interrupted(interrupted)
         if info is not None:
             # A run outlived the previous UI session: follow it instead of
             # starting the idle monitor (the run process owns the port).
@@ -382,6 +385,46 @@ class MainWindow(QMainWindow):
 
     def _on_engine_failed(self, message: str) -> None:
         QMessageBox.critical(self, "Run failed", message)
+
+    # ---------------------------------------------------------- notifications
+
+    def notifications_path(self) -> Path | None:
+        """Phone numbers and keys: kept in the app's config folder, never in the repo."""
+        return self.config_path.with_name("notifications.json") if self.config_path is not None else None
+
+    def notifications_log_path(self) -> Path | None:
+        return self.config_path.parent.parent / "logs" / "notifications.log" if self.config_path is not None else None
+
+    def load_notifications(self):
+        from asc_oven_control.infrastructure.notify import NotificationSettings
+
+        path = self.notifications_path()
+        try:
+            return NotificationSettings.load(path) if path is not None else NotificationSettings()
+        except (OSError, ValueError, KeyError, TypeError):
+            return NotificationSettings()
+
+    def save_notifications(self, settings) -> None:
+        path = self.notifications_path()
+        if path is not None:
+            settings.save(path)
+
+    def _notify_interrupted(self, run_ids: list[int]) -> None:
+        """A run ended without finishing (its process was killed): warn the lab."""
+        from asc_oven_control.infrastructure.notify import Notifier
+
+        settings = self.load_notifications()
+        runs = ", ".join(str(i) for i in run_ids)
+        self.live_page.add_event(f"Run {runs} ended unexpectedly (marked interrupted)")
+        Notifier(settings, log_path=self.notifications_log_path()).send(
+            f"ALERT ASC oven: run {runs} ended unexpectedly (its control process stopped) and is marked "
+            "interrupted. The controllers may still hold its set points: check the oven and switch the heater off.",
+            kind="fault",
+        )
+
+    def _notifications_for_run(self) -> dict | None:
+        settings = self.load_notifications()
+        return settings.to_dict() if settings.enabled and settings.recipients else None
 
     def calibration_path(self) -> Path | None:
         """Learned zone-offset calibration; kept in the repo next to run_logs."""
